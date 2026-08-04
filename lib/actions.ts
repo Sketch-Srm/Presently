@@ -2,6 +2,13 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
+
+export async function signOutAction() {
+  const supabase = await createClient()
+  await supabase.auth.signOut()
+  redirect('/login')
+}
 
 // -- MEMBER ACTIONS --
 export async function getMemberProfile() {
@@ -12,12 +19,14 @@ export async function getMemberProfile() {
   // Find member by email to link Google Auth with our Member roster
   const { data, error } = await supabase
     .from('members')
-    .select('*, domains(name)')
+    .select('*')
     .or(`email.eq.${user.email},regular_email.eq.${user.email}`)
     .single()
     
   if (error) {
-    console.error('Error fetching member:', error)
+    if (error.code !== 'PGRST116') {
+      console.error('Error fetching member:', error)
+    }
     return null
   }
   return data
@@ -150,7 +159,7 @@ export async function getAllMembers() {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('members')
-    .select('*, domains(name)')
+    .select('*')
     .order('name', { ascending: true })
   if (error) return []
   return data

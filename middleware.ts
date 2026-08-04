@@ -36,17 +36,19 @@ export async function middleware(request: NextRequest) {
   const isAdminRoute = request.nextUrl.pathname.startsWith('/admin')
   const isMemberRoute = request.nextUrl.pathname.startsWith('/dashboard') || request.nextUrl.pathname.startsWith('/sessions') || request.nextUrl.pathname.startsWith('/profile')
 
-  if (!user && (isAdminRoute || isMemberRoute)) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/login'
-    return NextResponse.redirect(url)
-  }
+  // --- TEMPORARILY DISABLED AUTHENTICATION FOR TESTING ---
+  // if (!user && (isAdminRoute || isMemberRoute)) {
+  //   const url = request.nextUrl.clone()
+  //   url.pathname = '/login'
+  //   return NextResponse.redirect(url)
+  // }
 
-  if (user && isAuthRoute) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/dashboard'
-    return NextResponse.redirect(url)
-  }
+  // if (user && isAuthRoute) {
+  //   const url = request.nextUrl.clone()
+  //   url.pathname = '/dashboard'
+  //   return NextResponse.redirect(url)
+  // }
+  // --------------------------------------------------------
 
   return supabaseResponse
 }

@@ -23,6 +23,18 @@ export default async function AdminDashboard() {
         </div>
       </div>
 
+      <section style={{ marginBottom: '2rem' }}>
+        <h2 className="text-display" style={{ fontSize: '1.25rem', marginBottom: '1rem' }}>Quick Actions (Testing)</h2>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+          <Link href="/admin/members/new" className="btn btn-ghost card" style={{ padding: '1rem', textAlign: 'center', border: '1px solid var(--accent-signal)', color: 'var(--accent-signal)', textDecoration: 'none' }}>
+            + Add Member
+          </Link>
+          <Link href="/admin/members/register-card" className="btn btn-ghost card" style={{ padding: '1rem', textAlign: 'center', border: '1px solid var(--chrome-light)', color: 'var(--chrome-light)', textDecoration: 'none' }}>
+            Register NFC Card
+          </Link>
+        </div>
+      </section>
+
       <section>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
           <h2 className="text-display" style={{ fontSize: '1.25rem' }}>Today's Sessions</h2>

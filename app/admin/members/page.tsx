@@ -38,9 +38,9 @@ export default async function MembersListPage() {
                 </div>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.25rem' }}>
-                {member.domains?.length > 0 && (
+                {member.domain_ids?.length > 0 && (
                   <span className="badge" style={{ borderColor: 'var(--chrome-mid)', color: 'var(--chrome-mid)', fontSize: '0.65rem' }}>
-                    {member.domains[0].name.toUpperCase()}
+                    DOMAIN
                   </span>
                 )}
                 {member.role === 'domain_lead' && <span className="badge badge-present" style={{ fontSize: '0.65rem' }}>LEAD</span>}

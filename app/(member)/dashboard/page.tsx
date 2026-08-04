@@ -13,13 +13,26 @@ export default async function MemberDashboard() {
         <div>
           <h1 className="text-display" style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>Welcome, {profile?.student_id || 'Member'}</h1>
           <p style={{ color: 'var(--chrome-mid)', fontSize: '0.875rem', textTransform: 'capitalize' }}>
-            {profile?.domains?.map((d: any) => d.name).join(' & ') || 'Club'} Domains
+            {profile?.domain_ids?.length > 0 ? 'Domain Assigned' : 'Club'} Member
           </p>
         </div>
         <div style={{ width: '40px', height: '40px', opacity: 0.8 }}>
           <LogoMark />
         </div>
       </header>
+
+      {/* QUICK ACTIONS FOR TESTING */}
+      <section style={{ marginBottom: '2rem' }}>
+        <h2 className="text-display" style={{ fontSize: '1.25rem', marginBottom: '1rem' }}>Quick Actions (Testing)</h2>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+          <Link href="/admin/members/new" className="btn btn-ghost card" style={{ padding: '1rem', textAlign: 'center', border: '1px solid var(--accent-signal)', color: 'var(--accent-signal)', textDecoration: 'none' }}>
+            + Add Member
+          </Link>
+          <Link href="/admin/members/register-card" className="btn btn-ghost card" style={{ padding: '1rem', textAlign: 'center', border: '1px solid var(--chrome-light)', color: 'var(--chrome-light)', textDecoration: 'none' }}>
+            Register NFC Card
+          </Link>
+        </div>
+      </section>
 
       {/* Attendance Summary */}
       <section style={{ marginBottom: '2.5rem' }}>

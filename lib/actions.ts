@@ -148,7 +148,7 @@ export async function handleNfcScan(sessionId: string, cardSerial: string) {
   const result = await markAttendance(sessionId, member.id, 'present', 'nfc')
   
   if (result.success) {
-    return { success: true, memberName: member.name }
+    return { success: true, memberName: member.name, memberId: member.id }
   }
   
   return { success: false, error: 'Failed to record attendance' }
@@ -219,4 +219,109 @@ export async function getReportsData() {
   attendance?.forEach(a => { if (a.status === 'present' || a.status === 'late') present++; })
   const avgAttendance = total > 0 ? Math.round((present / total) * 100) : 0
   return { memberCount: memberCount || 0, avgAttendance, atRiskMembers: [] }
+}
+
+// -- MEMBER DETAIL/EDIT ACTIONS --
+export async function getMemberById(id: string) {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('members')
+    .select('*')
+    .eq('id', id)
+    .single()
+  if (error) return null
+  return data
+}
+
+export async function updateMember(id: string, updates: Record<string, any>) {
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('members')
+    .update(updates)
+    .eq('id', id)
+  if (error) throw error
+  revalidatePath('/admin/members')
+  revalidatePath(`/admin/members/${id}`)
+}
+
+// -- SESSION CLOSE ACTION --
+export async function closeSession(sessionId: string) {
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('sessions')
+    .update({ status: 'closed' })
+    .eq('id', sessionId)
+  if (error) throw error
+  revalidatePath('/admin/sessions')
+}
+
+// -- MEMBER ATTENDANCE HISTORY --
+export async function getMemberAttendance(memberId: string) {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('attendance')
+    .select('*, sessions(id, title, date, type)')
+    .eq('member_id', memberId)
+    .order('created_at', { ascending: false })
+  if (error) return []
+  return data
+}
+
+// -- DOMAIN MANAGEMENT ACTIONS --
+export async function createDomain(formData: FormData) {
+  const supabase = await createClient()
+  const name = formData.get('name') as string
+  const description = formData.get('description') as string
+  const domain_lead_id = formData.get('domain_lead_id') as string | null
+
+  const { error } = await supabase
+    .from('domains')
+    .insert({ name, description, domain_lead_id: domain_lead_id || null })
+  if (error) throw error
+  revalidatePath('/admin/domains')
+}
+
+export async function updateDomain(id: string, updates: Record<string, any>) {
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('domains')
+    .update(updates)
+    .eq('id', id)
+  if (error) throw error
+  revalidatePath('/admin/domains')
+}
+
+export async function deleteDomain(id: string) {
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('domains')
+    .delete()
+    .eq('id', id)
+  if (error) throw error
+  revalidatePath('/admin/domains')
+}
+
+// -- BULK IMPORT --
+export async function bulkImportMembers(rows: any[]) {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('members')
+    .insert(rows)
+    .select()
+  if (error) throw error
+  revalidatePath('/admin/members')
+  return { inserted: data?.length || 0 }
+}
+
+// -- PHOTO UPLOAD --
+export async function updateMemberPhoto(memberId: string, photoUrl: string) {
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('members')
+    .update({ photo_url: photoUrl })
+    .eq('id', memberId)
+  if (error) throw error
+  revalidatePath('/admin/members')
+  revalidatePath(`/admin/members/${memberId}`)
+  revalidatePath('/profile')
 }

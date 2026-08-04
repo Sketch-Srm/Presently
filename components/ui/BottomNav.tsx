@@ -1,7 +1,13 @@
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { LayoutDashboard, CalendarDays, Plus, Users, BarChart3 } from 'lucide-react';
 
 export function AdminBottomNav() {
+  const pathname = usePathname();
+
   return (
     <nav style={{
       position: 'fixed',
@@ -15,16 +21,16 @@ export function AdminBottomNav() {
       paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom))',
       zIndex: 100
     }}>
-      <NavItem href="/admin/dashboard" label="Dash" icon="D" />
-      <NavItem href="/admin/sessions" label="Sessions" icon="S" />
-      <NavItem href="/admin/sessions/new" label="Take" icon="+" hero />
-      <NavItem href="/admin/members" label="Members" icon="M" />
-      <NavItem href="/admin/reports" label="Reports" icon="R" />
+      <NavItem href="/admin/dashboard" label="Dash" icon={<LayoutDashboard size={20} />} active={pathname === '/admin/dashboard'} />
+      <NavItem href="/admin/sessions" label="Sessions" icon={<CalendarDays size={20} />} active={pathname.startsWith('/admin/sessions')} />
+      <NavItem href="/admin/sessions/new" label="Take" icon={<Plus size={24} />} hero active={false} />
+      <NavItem href="/admin/members" label="Members" icon={<Users size={20} />} active={pathname.startsWith('/admin/members')} />
+      <NavItem href="/admin/reports" label="Reports" icon={<BarChart3 size={20} />} active={pathname === '/admin/reports'} />
     </nav>
   );
 }
 
-function NavItem({ href, label, icon, hero }: { href: string; label: string; icon: string; hero?: boolean }) {
+function NavItem({ href, label, icon, hero, active }: { href: string; label: string; icon: React.ReactNode; hero?: boolean; active: boolean }) {
   if (hero) {
     return (
       <Link href={href} style={{
@@ -48,9 +54,20 @@ function NavItem({ href, label, icon, hero }: { href: string; label: string; ico
 
   return (
     <Link href={href} style={{
-      display: 'flex', flexDirection: 'column', alignItems: 'center', textDecoration: 'none', color: 'var(--chrome-mid)'
+      display: 'flex', flexDirection: 'column', alignItems: 'center', textDecoration: 'none',
+      color: active ? 'var(--chrome-light)' : 'var(--chrome-mid)',
+      transition: 'color 0.2s',
+      position: 'relative',
+      padding: '0.25rem 0.75rem',
     }}>
-      <div style={{ fontSize: '1.25rem', marginBottom: '2px' }}>{icon}</div>
+      {active && (
+        <div style={{
+          position: 'absolute', top: '-0.5rem', left: '50%', transform: 'translateX(-50%)',
+          width: '3px', height: '3px', borderRadius: '50%',
+          background: 'var(--accent-signal)',
+        }} />
+      )}
+      <div style={{ marginBottom: '2px' }}>{icon}</div>
       <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</span>
     </Link>
   );

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { RibbonSpin } from '@/components/logo/RibbonSpin';
 import { LogoMark } from '@/components/logo/LogoMark';
+import { getAllMembers, linkNfcCard } from '@/lib/actions';
 
 export default function RegisterCardPage() {
   const router = useRouter();
@@ -11,11 +12,14 @@ export default function RegisterCardPage() {
   const [scanning, setScanning] = useState(false);
   const [cardSerial, setCardSerial] = useState<string | null>(null);
   const [nfcSupported, setNfcSupported] = useState(true);
+  const [members, setMembers] = useState<any[]>([]);
 
   useEffect(() => {
     if (!('NDEFReader' in window)) {
       setNfcSupported(false);
     }
+    // Fetch live members
+    getAllMembers().then(data => setMembers(data));
   }, []);
 
   const handleStartScan = async () => {
@@ -34,6 +38,17 @@ export default function RegisterCardPage() {
     } catch (error) {
       console.error(error);
       setScanning(false);
+    }
+  };
+
+  const handleLink = async (memberId: string) => {
+    if (!cardSerial) return;
+    const result = await linkNfcCard(memberId, cardSerial);
+    if (result.success) {
+      alert('Card linked successfully!');
+      router.push('/admin/members');
+    } else {
+      alert('Failed to link card');
     }
   };
 
@@ -108,13 +123,13 @@ export default function RegisterCardPage() {
           <input type="text" className="input" placeholder="Search by name or ID..." style={{ marginBottom: '1rem' }} />
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            {[1, 2].map((i) => (
-              <div key={i} className="card" style={{ padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            {members.map((member) => (
+              <div key={member.id} className="card" style={{ padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <div style={{ fontWeight: 500, color: 'var(--chrome-light)' }}>John Doe {i}</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--chrome-mid)', fontFamily: 'var(--font-mono)' }}>jd500{i}</div>
+                  <div style={{ fontWeight: 500, color: 'var(--chrome-light)' }}>{member.name}</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--chrome-mid)', fontFamily: 'var(--font-mono)' }}>{member.student_id}</div>
                 </div>
-                <button className="btn btn-ghost" style={{ padding: '0 1rem', border: '1px solid var(--accent-signal)', color: 'var(--accent-signal)' }}>
+                <button onClick={() => handleLink(member.id)} className="btn btn-ghost" style={{ padding: '0 1rem', border: '1px solid var(--accent-signal)', color: 'var(--accent-signal)' }}>
                   Link
                 </button>
               </div>

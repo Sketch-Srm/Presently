@@ -1,6 +1,8 @@
 import React from 'react';
+import { getReportsData } from '@/lib/actions';
 
-export default function ReportsPage() {
+export default async function ReportsPage() {
+  const data = await getReportsData();
   return (
     <div style={{ padding: '1.25rem' }}>
       <header style={{ marginBottom: '2rem' }}>
@@ -10,12 +12,12 @@ export default function ReportsPage() {
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '2rem' }}>
         <div className="card">
-          <div style={{ fontSize: '2rem', color: 'var(--chrome-light)' }} className="text-display">88<span style={{ fontSize: '1rem', color: 'var(--chrome-mid)' }}>%</span></div>
+          <div style={{ fontSize: '2rem', color: 'var(--chrome-light)' }} className="text-display">{data.avgAttendance}<span style={{ fontSize: '1rem', color: 'var(--chrome-mid)' }}>%</span></div>
           <div style={{ color: 'var(--chrome-mid)', fontSize: '0.75rem', textTransform: 'uppercase' }}>Avg Attendance</div>
         </div>
         <div className="card">
-          <div style={{ fontSize: '2rem', color: 'var(--state-absent)' }} className="text-display">12</div>
-          <div style={{ color: 'var(--chrome-mid)', fontSize: '0.75rem', textTransform: 'uppercase' }}>At Risk (&lt;75%)</div>
+          <div style={{ fontSize: '2rem', color: 'var(--chrome-light)' }} className="text-display">{data.memberCount}</div>
+          <div style={{ color: 'var(--chrome-mid)', fontSize: '0.75rem', textTransform: 'uppercase' }}>Total Members</div>
         </div>
       </div>
 

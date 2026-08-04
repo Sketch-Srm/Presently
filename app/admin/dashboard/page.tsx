@@ -1,6 +1,10 @@
 import React from 'react';
+import { getUpcomingSessions } from '@/lib/actions';
+import Link from 'next/link';
 
-export default function AdminDashboard() {
+export default async function AdminDashboard() {
+  const sessions = await getUpcomingSessions();
+
   return (
     <div style={{ padding: '1.25rem' }}>
       <header style={{ marginBottom: '2rem' }}>
@@ -26,20 +30,28 @@ export default function AdminDashboard() {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {[1, 2].map((i) => (
-            <div key={i} className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <h3 style={{ fontWeight: 600, marginBottom: '0.25rem' }}>Design Sync {i}</h3>
-                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                  <span className="badge" style={{ borderColor: 'var(--chrome-mid)', color: 'var(--chrome-mid)' }}>DESIGN</span>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--chrome-mid)' }}>14/20</span>
+          {sessions.length === 0 ? (
+            <p style={{ color: 'var(--chrome-mid)', fontSize: '0.875rem' }}>No upcoming sessions.</p>
+          ) : (
+            sessions.map((session: any) => (
+              <div key={session.id} className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <h3 style={{ fontWeight: 600, marginBottom: '0.25rem' }}>{session.title}</h3>
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <span className="badge" style={{ borderColor: 'var(--chrome-mid)', color: 'var(--chrome-mid)' }}>
+                      {session.scope === 'club_wide' ? 'CLUB_WIDE' : 'DOMAIN'}
+                    </span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--chrome-mid)' }}>
+                      {new Date(session.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
                 </div>
+                <Link href={`/admin/sessions/${session.id}/attendance`} className="btn btn-primary" style={{ minHeight: '36px', padding: '0 1rem', fontSize: '0.875rem', textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
+                  Take
+                </Link>
               </div>
-              <a href="/admin/sessions/1/attendance" className="btn btn-primary" style={{ minHeight: '36px', padding: '0 1rem', fontSize: '0.875rem' }}>
-                Take
-              </a>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </section>
     </div>

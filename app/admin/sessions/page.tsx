@@ -1,7 +1,10 @@
 import React from 'react';
 import Link from 'next/link';
+import { getAllSessions } from '@/lib/actions';
 
-export default function SessionsListPage() {
+export default async function SessionsListPage() {
+  const sessions = await getAllSessions();
+
   return (
     <div style={{ padding: '1.25rem' }}>
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
@@ -22,49 +25,36 @@ export default function SessionsListPage() {
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        {/* Session Card - Live */}
-        <Link href="/admin/sessions/1/attendance" style={{ textDecoration: 'none' }}>
-          <div className="card" style={{ borderColor: 'var(--accent-signal)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-              <div>
-                <h3 style={{ fontWeight: 600, fontSize: '1.1rem', marginBottom: '0.25rem', color: 'var(--chrome-light)' }}>Design Sync 1</h3>
-                <p style={{ color: 'var(--chrome-mid)', fontSize: '0.875rem' }}>Sept 24 • 2:00 PM</p>
+        {sessions.map((session: any) => (
+          <Link href={`/admin/sessions/${session.id}/attendance`} key={session.id} style={{ textDecoration: 'none' }}>
+            <div className={`card ${session.status === 'closed' ? 'opacity-50' : ''}`} style={{ borderColor: session.status === 'open' ? 'var(--accent-signal)' : 'var(--chrome-dark)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                <div>
+                  <h3 style={{ fontWeight: 600, fontSize: '1.1rem', marginBottom: '0.25rem', color: 'var(--chrome-light)' }}>{session.title}</h3>
+                  <p style={{ color: 'var(--chrome-mid)', fontSize: '0.875rem' }}>
+                    {new Date(session.date).toLocaleDateString()} • {new Date(session.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                </div>
+                {session.status === 'open' ? (
+                  <span className="badge badge-present">LIVE</span>
+                ) : (
+                  <span className="badge" style={{ background: 'var(--chrome-dark)', borderColor: 'var(--chrome-dark)' }}>CLOSED</span>
+                )}
               </div>
-              <span className="badge badge-present">LIVE</span>
-            </div>
-            
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <span className="badge" style={{ borderColor: 'var(--chrome-mid)', color: 'var(--chrome-mid)' }}>DESIGN</span>
-              </div>
-              <div className="text-mono" style={{ fontSize: '0.875rem', color: 'var(--chrome-mid)' }}>
-                14 / 20
-              </div>
-            </div>
-          </div>
-        </Link>
-
-        {/* Session Card - Closed */}
-        <Link href="/admin/reports/session/2" style={{ textDecoration: 'none' }}>
-          <div className="card" style={{ opacity: 0.7 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-              <div>
-                <h3 style={{ fontWeight: 600, fontSize: '1.1rem', marginBottom: '0.25rem', color: 'var(--chrome-light)' }}>General Assembly</h3>
-                <p style={{ color: 'var(--chrome-mid)', fontSize: '0.875rem' }}>Sept 18 • 5:00 PM</p>
-              </div>
-              <span className="badge" style={{ background: 'var(--chrome-dark)', borderColor: 'var(--chrome-dark)' }}>CLOSED</span>
-            </div>
-            
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <span className="badge" style={{ borderColor: 'var(--chrome-mid)', color: 'var(--chrome-mid)' }}>CLUB_WIDE</span>
-              </div>
-              <div className="text-mono" style={{ fontSize: '0.875rem', color: 'var(--chrome-mid)' }}>
-                112 / 120
+              
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <span className="badge" style={{ borderColor: 'var(--chrome-mid)', color: 'var(--chrome-mid)' }}>
+                    {session.scope === 'club_wide' ? 'CLUB-WIDE' : 'DOMAIN SPECIFIC'}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
-        </Link>
+          </Link>
+        ))}
+        {sessions.length === 0 && (
+          <p style={{ color: 'var(--chrome-mid)', fontSize: '0.875rem', textAlign: 'center', marginTop: '2rem' }}>No sessions found.</p>
+        )}
       </div>
     </div>
   );

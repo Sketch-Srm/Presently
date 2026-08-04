@@ -4,8 +4,9 @@ import React, { useState, useEffect } from 'react';
 import { LogoMark } from '@/components/logo/LogoMark';
 import { RibbonSpin } from '@/components/logo/RibbonSpin';
 import { RibbonFold } from '@/components/logo/RibbonFold';
+import { handleNfcScan } from '@/lib/actions';
 
-export default function TakeAttendancePage() {
+export default function TakeAttendancePage({ params }: { params: { id: string } }) {
   const [activeTab, setActiveTab] = useState<'nfc' | 'manual'>('manual');
   const [nfcSupported, setNfcSupported] = useState(false);
   const [scanning, setScanning] = useState(false);
@@ -27,8 +28,16 @@ export default function TakeAttendancePage() {
       const ndef = new window.NDEFReader();
       await ndef.scan();
       
-      ndef.addEventListener("reading", ({ message, serialNumber }: any) => {
-        setScanResult(serialNumber);
+      ndef.addEventListener("reading", async ({ message, serialNumber }: any) => {
+        // Call the server action to register the scan
+        const result = await handleNfcScan(params.id, serialNumber);
+        
+        if (result.success) {
+          setScanResult(result.memberName || serialNumber);
+        } else {
+          alert(result.error || "Failed to mark attendance.");
+        }
+        
         // Toast timeout
         setTimeout(() => setScanResult(null), 3000); 
       });

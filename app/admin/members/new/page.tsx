@@ -2,17 +2,24 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { createMember } from '@/lib/actions';
 
 export default function NewMemberPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
-    setTimeout(() => {
+    try {
+      const formData = new FormData(e.currentTarget);
+      await createMember(formData);
       router.push('/admin/members');
-    }, 1000);
+    } catch (err) {
+      console.error(err);
+      alert('Failed to add member');
+      setLoading(false);
+    }
   };
 
   return (
@@ -28,23 +35,29 @@ export default function NewMemberPage() {
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
         <div>
           <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'var(--chrome-mid)' }}>Full Name</label>
-          <input type="text" className="input" placeholder="Jane Doe" required />
+          <input type="text" name="name" className="input" placeholder="Jane Doe" required />
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
           <div>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'var(--chrome-mid)' }}>Student ID</label>
-            <input type="text" className="input input-mono" placeholder="jd1234" required />
+            <input type="text" name="student_id" className="input input-mono" placeholder="jd1234" required />
           </div>
           <div>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'var(--chrome-mid)' }}>Register No</label>
-            <input type="text" className="input input-mono" placeholder="RA2111..." required />
+            <input type="text" name="register_no" className="input input-mono" placeholder="RA2111..." required />
           </div>
         </div>
 
-        <div>
-          <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'var(--chrome-mid)' }}>Email (SRMIST)</label>
-          <input type="email" className="input" placeholder="jd1234@srmist.edu.in" required />
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+          <div>
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'var(--chrome-mid)' }}>Email (SRMIST)</label>
+            <input type="email" name="email" className="input" placeholder="jd1234@srmist.edu.in" required />
+          </div>
+          <div>
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'var(--chrome-mid)' }}>Personal Email (Optional)</label>
+            <input type="email" name="regular_email" className="input" placeholder="jane@gmail.com" />
+          </div>
         </div>
 
         <div className="card" style={{ padding: '1rem' }}>
@@ -61,7 +74,7 @@ export default function NewMemberPage() {
 
         <div>
           <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'var(--chrome-mid)' }}>Role</label>
-          <select className="input" required>
+          <select name="role" className="input" required>
             <option value="member">Member</option>
             <option value="domain_lead">Domain Lead</option>
             <option value="club_admin">Club Admin</option>

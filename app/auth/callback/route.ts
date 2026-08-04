@@ -32,14 +32,13 @@ export async function GET(request: Request) {
     const { data: { session }, error } = await supabase.auth.exchangeCodeForSession(code)
     
     if (!error && session?.user?.email) {
-      // Enforce email format: 2 lowercase letters, 4 numbers, @srmist.edu.in
-      const emailRegex = /^[a-z]{2}\d{4}@srmist\.edu\.in$/
-      
-      if (!emailRegex.test(session.user.email)) {
-        // Invalid email format, sign them out immediately
-        await supabase.auth.signOut()
-        return NextResponse.redirect(`${origin}/login?error=invalid_domain`)
-      }
+      // Temporarily disabled for testing with personal emails
+      // const emailRegex = /^[a-z]{2}\d{4}@srmist\.edu\.in$/
+      // 
+      // if (!emailRegex.test(session.user.email)) {
+      //   await supabase.auth.signOut()
+      //   return NextResponse.redirect(`${origin}/login?error=invalid_domain`)
+      // }
       
       return NextResponse.redirect(`${origin}/dashboard`)
     }

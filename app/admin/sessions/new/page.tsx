@@ -2,18 +2,26 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { createSession } from '@/lib/actions';
 
 export default function NewSessionPage() {
   const router = useRouter();
   const [scope, setScope] = useState<'club_wide' | 'domain_specific'>('club_wide');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
-    setTimeout(() => {
+    try {
+      const formData = new FormData(e.currentTarget);
+      formData.append('scope', scope);
+      await createSession(formData);
       router.push('/admin/sessions');
-    }, 1000);
+    } catch (err) {
+      console.error(err);
+      alert('Failed to create session');
+      setLoading(false);
+    }
   };
 
   return (
@@ -29,13 +37,13 @@ export default function NewSessionPage() {
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
         <div>
           <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'var(--chrome-mid)' }}>Session Title</label>
-          <input type="text" className="input" placeholder="e.g. Design Sync" required />
+          <input type="text" name="title" className="input" placeholder="e.g. Design Sync" required />
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
           <div>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'var(--chrome-mid)' }}>Type</label>
-            <select className="input" required>
+            <select name="type" className="input" required>
               <option value="meeting">Meeting</option>
               <option value="event">Event</option>
               <option value="workshop">Workshop</option>
@@ -44,18 +52,18 @@ export default function NewSessionPage() {
           </div>
           <div>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'var(--chrome-mid)' }}>Date</label>
-            <input type="date" className="input" required />
+            <input type="date" name="date" className="input" required />
           </div>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
           <div>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'var(--chrome-mid)' }}>Start Time</label>
-            <input type="time" className="input" required />
+            <input type="time" name="start_time" className="input" required />
           </div>
           <div>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'var(--chrome-mid)' }}>End Time (Optional)</label>
-            <input type="time" className="input" />
+            <input type="time" name="end_time" className="input" />
           </div>
         </div>
 

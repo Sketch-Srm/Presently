@@ -1,7 +1,10 @@
 import React from 'react';
 import Link from 'next/link';
+import { getAllMembers } from '@/lib/actions';
 
-export default function MembersListPage() {
+export default async function MembersListPage() {
+  const members = await getAllMembers();
+
   return (
     <div style={{ padding: '1.25rem' }}>
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
@@ -24,23 +27,32 @@ export default function MembersListPage() {
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-        {[1, 2, 3].map((i) => (
-          <Link href={`/admin/members/${i}`} key={i} style={{ textDecoration: 'none' }}>
+        {members.map((member: any) => (
+          <Link href={`/admin/members/${member.id}`} key={member.id} style={{ textDecoration: 'none' }}>
             <div className="card" style={{ padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                 <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--gradient-chrome)', border: '1px solid var(--chrome-dark)' }} />
                 <div>
-                  <div style={{ fontWeight: 500, color: 'var(--chrome-light)' }}>Jane Doe {i}</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--chrome-mid)', fontFamily: 'var(--font-mono)' }}>jd500{i}</div>
+                  <div style={{ fontWeight: 500, color: 'var(--chrome-light)' }}>{member.name}</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--chrome-mid)', fontFamily: 'var(--font-mono)' }}>{member.student_id}</div>
                 </div>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.25rem' }}>
-                <span className="badge" style={{ borderColor: 'var(--chrome-mid)', color: 'var(--chrome-mid)', fontSize: '0.65rem' }}>DESIGN</span>
-                {i === 1 && <span className="badge badge-present" style={{ fontSize: '0.65rem' }}>LEAD</span>}
+                {member.domains?.length > 0 && (
+                  <span className="badge" style={{ borderColor: 'var(--chrome-mid)', color: 'var(--chrome-mid)', fontSize: '0.65rem' }}>
+                    {member.domains[0].name.toUpperCase()}
+                  </span>
+                )}
+                {member.role === 'domain_lead' && <span className="badge badge-present" style={{ fontSize: '0.65rem' }}>LEAD</span>}
+                {member.role === 'club_admin' && <span className="badge badge-present" style={{ fontSize: '0.65rem', borderColor: 'var(--chrome-light)', color: 'var(--chrome-light)' }}>ADMIN</span>}
+                {member.role === 'super_admin' && <span className="badge badge-present" style={{ fontSize: '0.65rem', borderColor: 'var(--accent-signal)', color: 'var(--accent-signal)' }}>SUPER ADMIN</span>}
               </div>
             </div>
           </Link>
         ))}
+        {members.length === 0 && (
+          <p style={{ color: 'var(--chrome-mid)', fontSize: '0.875rem', textAlign: 'center', marginTop: '2rem' }}>No members found.</p>
+        )}
       </div>
     </div>
   );

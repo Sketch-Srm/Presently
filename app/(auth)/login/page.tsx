@@ -74,7 +74,7 @@ function LoginContent() {
         </button>
 
         <div style={{ textAlign: 'center', fontSize: '0.75rem', color: 'var(--chrome-mid)' }}>
-          Only <span className="text-mono" style={{ color: 'var(--chrome-light)' }}>xx1234@srmist.edu.in</span> emails are allowed.
+          Any email allowed for testing.
         </div>
       </div>
       

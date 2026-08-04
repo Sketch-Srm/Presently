@@ -5,32 +5,109 @@ import { LogoMark } from './LogoMark';
 import './logo.css';
 
 export function LogoAssembly({ onComplete }: { onComplete: () => void }) {
-  const [stage, setStage] = useState<'draw' | 'fill' | 'fade'>('draw');
+  const [fade, setFade] = useState(false);
 
   useEffect(() => {
-    // Stage 1: Draw strokes (0 - 500ms)
-    const fillTimer = setTimeout(() => {
-      setStage('fill');
-    }, 500);
-
-    // Stage 2: Fade out overlay/assemble complete (1000ms)
+    // 0s to 0.4s: strokes draw
+    // 0.4s to 1.15s: liquid wipe fills up
+    // 1.5s: begin fading out the whole container
     const fadeTimer = setTimeout(() => {
-      setStage('fade');
-      setTimeout(onComplete, 300); // Trigger complete after fade
-    }, 1200);
+      setFade(true);
+      setTimeout(onComplete, 400); // Trigger complete after 400ms fade
+    }, 1500);
 
-    return () => {
-      clearTimeout(fillTimer);
-      clearTimeout(fadeTimer);
-    };
+    return () => clearTimeout(fadeTimer);
   }, [onComplete]);
 
   return (
-    <div className={`logo-assembly-container ${stage === 'fade' ? 'fade-out' : ''}`}>
-      <div className={`logo-assembly-mark ${stage}`}>
-        {/* We use an animated version of the SVG or CSS classes applied to it */}
-        <LogoMark />
+    <div className={`logo-assembly-container ${fade ? 'fade-out' : ''}`}>
+      <div
+        style={{
+          width: 140,
+          height: 140,
+          position: 'relative',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        {/* LAYER 1: Outline Tracing (Runs instantly) */}
+        <svg
+          viewBox="0 0 100 100"
+          style={{
+            width: '100%',
+            height: '100%',
+            position: 'absolute',
+            inset: 0,
+          }}
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M 20,30 L 60,30 L 80,50 L 60,50 L 40,50 L 20,30 Z"
+            fill="none"
+            stroke="var(--chrome-light, #E8E8EA)"
+            strokeWidth="2"
+            strokeLinejoin="round"
+            style={{
+              strokeDasharray: 250,
+              strokeDashoffset: 250,
+              animation: 'llaTraceLine 0.5s cubic-bezier(0.4, 0, 0.2, 1) 0s forwards',
+            }}
+          />
+          <path
+            d="M 80,30 L 60,30 L 40,50 L 40,70 L 60,50 L 80,50 Z"
+            fill="none"
+            stroke="var(--chrome-light, #E8E8EA)"
+            strokeWidth="2"
+            strokeLinejoin="round"
+            style={{
+              strokeDasharray: 250,
+              strokeDashoffset: 250,
+              animation: 'llaTraceLine 0.5s cubic-bezier(0.4, 0, 0.2, 1) 0.1s forwards',
+            }}
+          />
+          <path
+            d="M 80,70 L 40,70 L 20,50 L 40,50 L 60,50 L 80,70 Z"
+            fill="none"
+            stroke="var(--chrome-light, #E8E8EA)"
+            strokeWidth="2"
+            strokeLinejoin="round"
+            style={{
+              strokeDasharray: 250,
+              strokeDashoffset: 250,
+              animation: 'llaTraceLine 0.5s cubic-bezier(0.4, 0, 0.2, 1) 0.2s forwards',
+            }}
+          />
+        </svg>
+
+        {/* LAYER 2: Solid Metallic Fill (Liquid wipe downwards) */}
+        <div
+          style={{
+            width: '100%',
+            height: '100%',
+            position: 'absolute',
+            inset: 0,
+            clipPath: 'inset(0 0 100% 0)',
+            filter: 'drop-shadow(0 0 14px rgba(125, 216, 255, 0.45))',
+            animation: 'llaLiquidWipe 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.5s forwards',
+          }}
+        >
+          <LogoMark />
+        </div>
       </div>
+
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes llaTraceLine {
+          from { stroke-dashoffset: 250; }
+          to   { stroke-dashoffset: 0; }
+        }
+        @keyframes llaLiquidWipe {
+          0%   { clip-path: inset(0 0 100% 0); -webkit-clip-path: inset(0 0 100% 0); opacity: 0; transform: scale(0.96); }
+          5%   { opacity: 1; transform: scale(0.96); }
+          100% { clip-path: inset(0 0 0 0); -webkit-clip-path: inset(0 0 0 0); opacity: 1; transform: scale(1); }
+        }
+      `}} />
     </div>
   );
 }

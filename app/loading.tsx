@@ -16,7 +16,7 @@ export default function GlobalLoading() {
       left: 0,
       zIndex: 9999
     }}>
-        <LogoLoading size={80} />
+        <LogoLoading size={100} />
     </div>
   );
 }

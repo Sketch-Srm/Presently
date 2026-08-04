@@ -20,7 +20,7 @@ export async function getMemberProfile() {
   const { data, error } = await supabase
     .from('members')
     .select('*')
-    .or(`email.eq.${user.email},regular_email.eq.${user.email}`)
+    .or(`email.ilike.${user.email},regular_email.ilike.${user.email}`)
     .single()
     
   if (error) {

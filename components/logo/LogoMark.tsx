@@ -11,14 +11,14 @@ export function LogoMark({ className = '', style = {} }: { className?: string; s
     >
       <defs>
         <linearGradient id="chrome-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#E8E8EA" />
-          <stop offset="40%" stopColor="#9CA0A6" />
-          <stop offset="100%" stopColor="#4A4D52" />
+          <stop offset="0%" stopColor="#FFFFFF" />
+          <stop offset="40%" stopColor="#D1D5DB" />
+          <stop offset="100%" stopColor="#9CA0A6" />
         </linearGradient>
         <linearGradient id="chrome-dark-grad" x1="0%" y1="100%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor="#4A4D52" />
-          <stop offset="50%" stopColor="#9CA0A6" />
-          <stop offset="100%" stopColor="#E8E8EA" />
+          <stop offset="0%" stopColor="#9CA0A6" />
+          <stop offset="50%" stopColor="#D1D5DB" />
+          <stop offset="100%" stopColor="#FFFFFF" />
         </linearGradient>
         <filter id="glow">
           <feGaussianBlur stdDeviation="3" result="coloredBlur"/>

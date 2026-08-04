@@ -32,15 +32,24 @@ export async function GET(request: Request) {
     const { data: { session }, error } = await supabase.auth.exchangeCodeForSession(code)
     
     if (!error && session?.user?.email) {
-      // Temporarily disabled for testing with personal emails
-      // const emailRegex = /^[a-z]{2}\d{4}@srmist\.edu\.in$/
-      // 
-      // if (!emailRegex.test(session.user.email)) {
-      //   await supabase.auth.signOut()
-      //   return NextResponse.redirect(`${origin}/login?error=invalid_domain`)
-      // }
-      
-      return NextResponse.redirect(`${origin}/dashboard`)
+      // Check if user exists in the database
+      const { data: member } = await supabase
+        .from('members')
+        .select('role')
+        .or(`email.ilike.${session.user.email},regular_email.ilike.${session.user.email}`)
+        .single()
+
+      if (!member) {
+        // User not in the system
+        return NextResponse.redirect(`${origin}/unregistered`)
+      }
+
+      // Route based on role
+      if (member.role === 'super_admin' || member.role === 'club_admin') {
+        return NextResponse.redirect(`${origin}/admin/dashboard`)
+      } else {
+        return NextResponse.redirect(`${origin}/dashboard`)
+      }
     }
   }
 

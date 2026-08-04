@@ -1,8 +1,20 @@
 import React from 'react';
-import { getReportsData } from '@/lib/actions';
+import { getReportsData, getAllMembers } from '@/lib/actions';
+import { ExportButton } from '@/components/ExportButton';
 
 export default async function ReportsPage() {
   const data = await getReportsData();
+  const allMembers = await getAllMembers();
+  
+  // Format data for export
+  const exportData = allMembers.map(m => ({
+    Name: m.name,
+    Email: m.email || m.regular_email,
+    Student_ID: m.student_id,
+    Register_No: m.register_no,
+    Role: m.role,
+    Status: m.status
+  }));
   return (
     <div style={{ padding: '1.25rem' }}>
       <header style={{ marginBottom: '2rem' }}>
@@ -24,31 +36,37 @@ export default async function ReportsPage() {
       <section style={{ marginBottom: '2rem' }}>
         <h2 className="text-display" style={{ fontSize: '1.25rem', marginBottom: '1rem' }}>Export Data (CSV)</h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          <button className="btn btn-ghost card" style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem', border: '1px solid var(--chrome-dark)' }}>
-            <span style={{ fontWeight: 500 }}>Club-wide Report</span>
-            <span style={{ color: 'var(--accent-signal)' }}>↓</span>
-          </button>
-          <button className="btn btn-ghost card" style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem', border: '1px solid var(--chrome-dark)' }}>
-            <span style={{ fontWeight: 500 }}>Technical Domain</span>
-            <span style={{ color: 'var(--accent-signal)' }}>↓</span>
-          </button>
+          <ExportButton 
+            label="Club-wide Report" 
+            filename="presently_club_wide_members.csv" 
+            data={exportData} 
+          />
+          <ExportButton 
+            label="Active Members Only" 
+            filename="presently_active_members.csv" 
+            data={exportData.filter(m => m.Status === 'active')} 
+          />
         </div>
       </section>
 
       <section>
         <h2 className="text-display" style={{ fontSize: '1.25rem', marginBottom: '1rem', color: 'var(--state-absent)' }}>At-Risk Members</h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          {[1, 2].map((i) => (
-            <div key={i} className="card" style={{ padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid rgba(232, 93, 93, 0.3)' }}>
-              <div>
-                <div style={{ fontWeight: 500 }}>At Risk Member {i}</div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--chrome-mid)' }}>Technical • md500{i}</div>
+          {data.atRiskMembers.length === 0 ? (
+            <p style={{ color: 'var(--chrome-mid)', fontSize: '0.875rem' }}>No at-risk members found.</p>
+          ) : (
+            data.atRiskMembers.map((member: any) => (
+              <div key={member.id} className="card" style={{ padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid rgba(232, 93, 93, 0.3)' }}>
+                <div>
+                  <div style={{ fontWeight: 500 }}>{member.name}</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--chrome-mid)' }}>{member.domain} • {member.student_id}</div>
+                </div>
+                <div className="text-display" style={{ color: 'var(--state-absent)', fontSize: '1.5rem' }}>
+                  {member.attendanceRate}%
+                </div>
               </div>
-              <div className="text-display" style={{ color: 'var(--state-absent)', fontSize: '1.5rem' }}>
-                6{i}%
-              </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </section>
     </div>

@@ -51,12 +51,12 @@ export default function NewMemberPage() {
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
           <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'var(--chrome-mid)' }}>Email (SRMIST)</label>
-            <input type="email" name="email" className="input" placeholder="jd1234@srmist.edu.in" required />
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'var(--chrome-mid)' }}>Personal Email (Primary)</label>
+            <input type="email" name="regular_email" className="input" placeholder="jane@gmail.com" required />
           </div>
           <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'var(--chrome-mid)' }}>Personal Email (Optional)</label>
-            <input type="email" name="regular_email" className="input" placeholder="jane@gmail.com" />
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'var(--chrome-mid)' }}>Email (SRMIST - Optional)</label>
+            <input type="email" name="email" className="input" placeholder="jd1234@srmist.edu.in" />
           </div>
         </div>
 

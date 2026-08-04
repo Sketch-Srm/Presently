@@ -1,0 +1,75 @@
+.logo-assembly-container {
+  position: fixed;
+  inset: 0;
+  background-color: var(--bg-void);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  transition: opacity 0.3s var(--ease-smooth), visibility 0.3s;
+}
+
+.logo-assembly-container.fade-out {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.logo-assembly-mark {
+  width: 120px;
+  height: 120px;
+  position: relative;
+}
+
+/* Base states for paths during assembly */
+.logo-assembly-mark.draw svg path {
+  fill: transparent;
+  stroke: var(--chrome-light);
+  stroke-width: 2;
+  stroke-dasharray: 200;
+  stroke-dashoffset: 200;
+  animation: drawStroke 0.5s var(--ease-smooth) forwards;
+}
+
+.logo-assembly-mark.fill svg path {
+  fill: transparent; /* starts transparent */
+  stroke: var(--chrome-light);
+  stroke-width: 1.5;
+  animation: fadeFill 0.5s var(--ease-smooth) forwards;
+}
+
+@keyframes drawStroke {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes fadeFill {
+  0% {
+    fill: transparent;
+  }
+  100% {
+    /* The SVG has fill="url(#...)" which CSS will override if we just set fill. 
+       So we rely on opacity instead by wrapping the paths or we use a clever trick:
+       In the LogoMark we apply a class to paths. 
+       For simplicity here, let's just fade opacity on the whole element and let the SVG retain its fills natively.
+    */
+  }
+}
+
+/* Better approach: we'll animate the SVG wrapper opacity */
+.logo-assembly-mark.draw svg {
+  opacity: 0;
+  animation: fadeInMark 0.5s forwards;
+}
+
+.logo-assembly-mark.fill svg {
+  opacity: 1;
+  filter: drop-shadow(0 0 10px rgba(125, 216, 255, 0.4));
+  transition: filter 0.5s var(--ease-smooth);
+}
+
+@keyframes fadeInMark {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}

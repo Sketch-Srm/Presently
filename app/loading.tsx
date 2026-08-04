@@ -1,5 +1,5 @@
 import React from 'react';
-import { RibbonSpin } from '@/components/logo/RibbonSpin';
+import { LogoLoading } from '@/components/logo/LogoLoading';
 
 export default function GlobalLoading() {
   return (
@@ -16,9 +16,7 @@ export default function GlobalLoading() {
       left: 0,
       zIndex: 9999
     }}>
-      <div style={{ width: '80px', height: '80px' }}>
-        <RibbonSpin />
-      </div>
+        <LogoLoading size={80} />
     </div>
   );
 }

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { RibbonSpin } from '@/components/logo/RibbonSpin';
+import { LogoLoading } from '@/components/logo/LogoLoading';
 
 export function PageTransition({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -35,9 +35,7 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
           transition: 'opacity 0.25s ease',
           pointerEvents: visible ? 'all' : 'none',
         }}>
-          <div style={{ width: '80px', height: '80px' }}>
-            <RibbonSpin />
-          </div>
+          <LogoLoading size={80} />
         </div>
       )}
       {children}

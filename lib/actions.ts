@@ -73,11 +73,16 @@ export async function createSession(formData: FormData) {
   const scope = formData.get('scope') as string
 
   // We need the member ID for 'created_by'
-  const { data: member } = await supabase
+  const { data: member, error: memberErr } = await supabase
     .from('members')
     .select('id')
-    .or(`email.eq.${user.email},regular_email.eq.${user.email}`)
+    .or(`email.ilike.${user.email},regular_email.ilike.${user.email}`)
     .single()
+
+  if (memberErr || !member) {
+    console.error('Member lookup failed for session creator:', memberErr, user.email);
+    throw new Error('Member not found for user ' + user.email);
+  }
 
   const { data, error } = await supabase
     .from('sessions')
@@ -85,9 +90,9 @@ export async function createSession(formData: FormData) {
       title,
       type,
       date,
-      start_time: new Date(`${date}T${start_time}`).toISOString(),
+      start_time: new Date(`${date}T${start_time}:00`).toISOString(),
       scope,
-      created_by: member?.id
+      created_by: member.id
     })
     .select()
 

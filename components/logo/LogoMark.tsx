@@ -1,6 +1,16 @@
-import React from 'react';
+export interface LogoMarkProps {
+  className?: string;
+  style?: React.CSSProperties;
+  variant?: 'matte' | 'chrome' | 'monochrome';
+  accentColor?: string;
+}
 
-export function LogoMark({ className = '', style = {} }: { className?: string; style?: React.CSSProperties }) {
+export function LogoMark({ 
+  className = '', 
+  style = {},
+  variant = 'matte',
+  accentColor
+}: LogoMarkProps) {
   return (
     <svg 
       viewBox="0 0 100 100" 
@@ -20,31 +30,21 @@ export function LogoMark({ className = '', style = {} }: { className?: string; s
           <stop offset="50%" stopColor="#D1D5DB" />
           <stop offset="100%" stopColor="#FFFFFF" />
         </linearGradient>
-        <filter id="glow">
-          <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
-          <feMerge>
-            <feMergeNode in="coloredBlur"/>
-            <feMergeNode in="SourceGraphic"/>
-          </feMerge>
-        </filter>
       </defs>
       
-      {/* 
-        Creating an interlocking 'S' shape using clean geometry to represent the ribbon fold.
-        Top fold 
-      */}
+      {/* Top fold */}
       <path 
         d="M 20,30 L 60,30 L 80,50 L 60,50 L 40,50 L 20,30 Z" 
-        fill="url(#chrome-grad)" 
+        fill={variant === 'chrome' ? 'url(#chrome-grad)' : variant === 'monochrome' ? (accentColor || 'currentColor') : '#E2E4E8'} 
         stroke="#141416"
         strokeWidth="1.5"
         strokeLinejoin="round"
       />
       
-      {/* Center diagonal cut */}
+      {/* Center diagonal cut (darker matte tone for 3D geometric depth) */}
       <path 
         d="M 80,30 L 60,30 L 40,50 L 40,70 L 60,50 L 80,50 Z" 
-        fill="url(#chrome-dark-grad)" 
+        fill={variant === 'chrome' ? 'url(#chrome-dark-grad)' : variant === 'monochrome' ? (accentColor || 'currentColor') : '#787D86'} 
         stroke="#141416"
         strokeWidth="1.5"
         strokeLinejoin="round"
@@ -53,7 +53,7 @@ export function LogoMark({ className = '', style = {} }: { className?: string; s
       {/* Bottom fold */}
       <path 
         d="M 80,70 L 40,70 L 20,50 L 40,50 L 60,50 L 80,70 Z" 
-        fill="url(#chrome-grad)" 
+        fill={variant === 'chrome' ? 'url(#chrome-grad)' : variant === 'monochrome' ? (accentColor || 'currentColor') : '#B0B4BC'} 
         stroke="#141416"
         strokeWidth="1.5"
         strokeLinejoin="round"

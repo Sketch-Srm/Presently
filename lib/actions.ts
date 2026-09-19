@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 
@@ -16,8 +16,9 @@ export async function getMemberProfile() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
+  const adminClient = createAdminClient()
   // Find member by email to link Google Auth with our Member roster
-  const { data, error } = await supabase
+  const { data, error } = await adminClient
     .from('members')
     .select('*')
     .or(`email.ilike.${user.email},regular_email.ilike.${user.email}`)
@@ -34,9 +35,8 @@ export async function getMemberProfile() {
 
 // -- SESSION ACTIONS --
 export async function getUpcomingSessions() {
-  const supabase = await createClient()
-  
-  const { data, error } = await supabase
+  const adminClient = createAdminClient()
+  const { data, error } = await adminClient
     .from('sessions')
     .select('*')
     .eq('status', 'open')
@@ -51,8 +51,8 @@ export async function getUpcomingSessions() {
 }
 
 export async function getAllSessions() {
-  const supabase = await createClient()
-  const { data, error } = await supabase
+  const adminClient = createAdminClient()
+  const { data, error } = await adminClient
     .from('sessions')
     .select('*')
     .order('date', { ascending: false })
@@ -64,41 +64,55 @@ export async function createSession(formData: FormData) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   
-  if (!user) throw new Error('Unauthorized')
+  if (!user?.email) throw new Error('Unauthorized')
 
   const title = formData.get('title') as string
   const type = formData.get('type') as string
   const date = formData.get('date') as string
   const start_time = formData.get('start_time') as string
+  const end_time = formData.get('end_time') as string | null
   const scope = formData.get('scope') as string
+  const late_threshold = formData.get('late_threshold_minutes') as string | null
+  const target_domain_ids = formData.getAll('target_domain_ids') as string[]
+
+  const adminClient = createAdminClient()
 
   // We need the member ID for 'created_by'
-  const { data: member, error: memberErr } = await supabase
+  const { data: member, error: memberErr } = await adminClient
     .from('members')
-    .select('id')
+    .select('id, role')
     .or(`email.ilike.${user.email},regular_email.ilike.${user.email}`)
     .single()
 
   if (memberErr || !member) {
-    console.error('Member lookup failed for session creator:', memberErr, user.email);
-    throw new Error('Member not found for user ' + user.email);
+    console.error('Member lookup failed for session creator:', memberErr, user.email)
+    throw new Error('Member not found for user ' + user.email)
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await adminClient
     .from('sessions')
     .insert({
       title,
       type,
       date,
       start_time: new Date(`${date}T${start_time}:00`).toISOString(),
+      end_time: end_time ? new Date(`${date}T${end_time}:00`).toISOString() : null,
       scope,
-      created_by: member.id
+      target_domain_ids: target_domain_ids.length > 0 ? target_domain_ids : [],
+      late_threshold_minutes: late_threshold ? parseInt(late_threshold, 10) : null,
+      created_by: member.id,
+      status: 'open'
     })
     .select()
 
-  if (error) throw error
+  if (error) {
+    console.error('Session creation error:', error)
+    throw error
+  }
+
   revalidatePath('/admin/sessions')
   revalidatePath('/dashboard')
+  revalidatePath('/sessions')
   return data[0]
 }
 
@@ -106,21 +120,26 @@ export async function createSession(formData: FormData) {
 export async function markAttendance(sessionId: string, memberId: string, status: string, method: 'nfc' | 'manual') {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
+  const adminClient = createAdminClient()
   
-  const { data: admin } = await supabase
-    .from('members')
-    .select('id')
-    .or(`email.eq.${user?.email},regular_email.eq.${user?.email}`)
-    .single()
+  let adminId = null
+  if (user?.email) {
+    const { data: admin } = await adminClient
+      .from('members')
+      .select('id')
+      .or(`email.ilike.${user.email},regular_email.ilike.${user.email}`)
+      .single()
+    adminId = admin?.id
+  }
 
-  const { error } = await supabase
+  const { error } = await adminClient
     .from('attendance')
     .upsert({
       session_id: sessionId,
       member_id: memberId,
       status,
       method,
-      marked_by: admin?.id,
+      marked_by: adminId,
       timestamp: new Date().toISOString()
     }, {
       onConflict: 'session_id, member_id'
@@ -136,10 +155,10 @@ export async function markAttendance(sessionId: string, memberId: string, status
 }
 
 export async function handleNfcScan(sessionId: string, cardSerial: string) {
-  const supabase = await createClient()
+  const adminClient = createAdminClient()
   
   // 1. Look up member by card serial
-  const { data: member, error: memberError } = await supabase
+  const { data: member, error: memberError } = await adminClient
     .from('members')
     .select('id, name')
     .eq('card_serial', cardSerial)
@@ -161,8 +180,8 @@ export async function handleNfcScan(sessionId: string, cardSerial: string) {
 
 // -- MEMBER MANAGEMENT ACTIONS --
 export async function getAllMembers() {
-  const supabase = await createClient()
-  const { data, error } = await supabase
+  const adminClient = createAdminClient()
+  const { data, error } = await adminClient
     .from('members')
     .select('*')
     .order('name', { ascending: true })
@@ -171,17 +190,26 @@ export async function getAllMembers() {
 }
 
 export async function createMember(formData: FormData) {
-  const supabase = await createClient()
+  const adminClient = createAdminClient()
   const name = formData.get('name') as string
   const student_id = formData.get('student_id') as string
   const register_no = formData.get('register_no') as string
   const email = formData.get('email') as string
   const regular_email = formData.get('regular_email') as string
   const role = formData.get('role') as string
+  const domain_ids = formData.getAll('domain_ids') as string[]
 
-  const { data, error } = await supabase
+  const { data, error } = await adminClient
     .from('members')
-    .insert({ name, student_id, register_no, email, regular_email: regular_email || null, role })
+    .insert({ 
+      name, 
+      student_id, 
+      register_no, 
+      email, 
+      regular_email: regular_email || null, 
+      role,
+      domain_ids: domain_ids.length > 0 ? domain_ids : []
+    })
     .select()
 
   if (error) throw error
@@ -190,8 +218,8 @@ export async function createMember(formData: FormData) {
 }
 
 export async function linkNfcCard(memberId: string, cardSerial: string) {
-  const supabase = await createClient()
-  const { error } = await supabase
+  const adminClient = createAdminClient()
+  const { error } = await adminClient
     .from('members')
     .update({ card_serial: cardSerial })
     .eq('id', memberId)
@@ -206,8 +234,8 @@ export async function linkNfcCard(memberId: string, cardSerial: string) {
 
 // -- DOMAIN ACTIONS --
 export async function getAllDomains() {
-  const supabase = await createClient()
-  const { data, error } = await supabase
+  const adminClient = createAdminClient()
+  const { data, error } = await adminClient
     .from('domains')
     .select('*, domain_lead_id(name)')
     .order('name', { ascending: true })
@@ -217,10 +245,11 @@ export async function getAllDomains() {
 
 // -- REPORTS ACTIONS --
 export async function getReportsData() {
-  const supabase = await createClient()
-  const { count: memberCount } = await supabase.from('members').select('*', { count: 'exact', head: true }).eq('status', 'active')
-  const { data: attendance } = await supabase.from('attendance').select('status')
-  let present = 0; let total = attendance?.length || 0;
+  const adminClient = createAdminClient()
+  const { count: memberCount } = await adminClient.from('members').select('*', { count: 'exact', head: true }).eq('status', 'active')
+  const { data: attendance } = await adminClient.from('attendance').select('status')
+  let present = 0
+  const total = attendance?.length || 0
   attendance?.forEach(a => { if (a.status === 'present' || a.status === 'late') present++; })
   const avgAttendance = total > 0 ? Math.round((present / total) * 100) : 0
   return { memberCount: memberCount || 0, avgAttendance, atRiskMembers: [] }
@@ -228,8 +257,8 @@ export async function getReportsData() {
 
 // -- MEMBER DETAIL/EDIT ACTIONS --
 export async function getMemberById(id: string) {
-  const supabase = await createClient()
-  const { data, error } = await supabase
+  const adminClient = createAdminClient()
+  const { data, error } = await adminClient
     .from('members')
     .select('*')
     .eq('id', id)
@@ -239,8 +268,8 @@ export async function getMemberById(id: string) {
 }
 
 export async function updateMember(id: string, updates: Record<string, any>) {
-  const supabase = await createClient()
-  const { error } = await supabase
+  const adminClient = createAdminClient()
+  const { error } = await adminClient
     .from('members')
     .update(updates)
     .eq('id', id)
@@ -251,8 +280,8 @@ export async function updateMember(id: string, updates: Record<string, any>) {
 
 // -- SESSION CLOSE ACTION --
 export async function closeSession(sessionId: string) {
-  const supabase = await createClient()
-  const { error } = await supabase
+  const adminClient = createAdminClient()
+  const { error } = await adminClient
     .from('sessions')
     .update({ status: 'closed' })
     .eq('id', sessionId)
@@ -262,8 +291,8 @@ export async function closeSession(sessionId: string) {
 
 // -- MEMBER ATTENDANCE HISTORY --
 export async function getMemberAttendance(memberId: string) {
-  const supabase = await createClient()
-  const { data, error } = await supabase
+  const adminClient = createAdminClient()
+  const { data, error } = await adminClient
     .from('attendance')
     .select('*, sessions(id, title, date, type)')
     .eq('member_id', memberId)
@@ -274,12 +303,12 @@ export async function getMemberAttendance(memberId: string) {
 
 // -- DOMAIN MANAGEMENT ACTIONS --
 export async function createDomain(formData: FormData) {
-  const supabase = await createClient()
+  const adminClient = createAdminClient()
   const name = formData.get('name') as string
   const description = formData.get('description') as string
   const domain_lead_id = formData.get('domain_lead_id') as string | null
 
-  const { error } = await supabase
+  const { error } = await adminClient
     .from('domains')
     .insert({ name, description, domain_lead_id: domain_lead_id || null })
   if (error) throw error
@@ -287,8 +316,8 @@ export async function createDomain(formData: FormData) {
 }
 
 export async function updateDomain(id: string, updates: Record<string, any>) {
-  const supabase = await createClient()
-  const { error } = await supabase
+  const adminClient = createAdminClient()
+  const { error } = await adminClient
     .from('domains')
     .update(updates)
     .eq('id', id)
@@ -297,8 +326,8 @@ export async function updateDomain(id: string, updates: Record<string, any>) {
 }
 
 export async function deleteDomain(id: string) {
-  const supabase = await createClient()
-  const { error } = await supabase
+  const adminClient = createAdminClient()
+  const { error } = await adminClient
     .from('domains')
     .delete()
     .eq('id', id)
@@ -308,8 +337,8 @@ export async function deleteDomain(id: string) {
 
 // -- BULK IMPORT --
 export async function bulkImportMembers(rows: any[]) {
-  const supabase = await createClient()
-  const { data, error } = await supabase
+  const adminClient = createAdminClient()
+  const { data, error } = await adminClient
     .from('members')
     .insert(rows)
     .select()
@@ -320,8 +349,8 @@ export async function bulkImportMembers(rows: any[]) {
 
 // -- PHOTO UPLOAD --
 export async function updateMemberPhoto(memberId: string, photoUrl: string) {
-  const supabase = await createClient()
-  const { error } = await supabase
+  const adminClient = createAdminClient()
+  const { error } = await adminClient
     .from('members')
     .update({ photo_url: photoUrl })
     .eq('id', memberId)

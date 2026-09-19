@@ -1,4 +1,5 @@
 import { createServerClient } from '@supabase/ssr'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 
 export const createClient = async () => {
@@ -23,6 +24,20 @@ export const createClient = async () => {
             // user sessions.
           }
         },
+      },
+    }
+  )
+}
+
+export const createAdminClient = () => {
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  return createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    serviceKey,
+    {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
       },
     }
   )

@@ -80,8 +80,8 @@ ALTER TABLE attendance ENABLE ROW LEVEL SECURITY;
 -- 3. Create Security Policies
 -- ==========================================
 
--- Note: In Supabase, auth.uid() refers to the user ID in the auth.users table.
--- We assume the 'id' in our 'members' table matches the auth.uid() exactly (handled during registration/login).
+-- Note: Google OAuth users are linked to members by email.
+-- auth.jwt() ->> 'email' extracts the email of the logged-in user.
 
 -- ------------------------------------------
 -- Policies for 'domains'
@@ -93,7 +93,7 @@ CREATE POLICY "domains_read" ON domains
 -- Only admins can manage domains
 CREATE POLICY "domains_write" ON domains 
   FOR ALL TO authenticated 
-  USING ((SELECT role FROM members WHERE id = auth.uid()) IN ('super_admin', 'club_admin'));
+  USING ((SELECT role FROM members WHERE email ILIKE (auth.jwt() ->> 'email') OR regular_email ILIKE (auth.jwt() ->> 'email')) IN ('super_admin', 'club_admin'));
 
 
 -- ------------------------------------------
@@ -106,15 +106,15 @@ CREATE POLICY "members_read" ON members
 -- Only admins can insert/update/delete members
 CREATE POLICY "members_insert" ON members 
   FOR INSERT TO authenticated
-  WITH CHECK ((SELECT role FROM members WHERE id = auth.uid()) IN ('super_admin', 'club_admin'));
+  WITH CHECK ((SELECT role FROM members WHERE email ILIKE (auth.jwt() ->> 'email') OR regular_email ILIKE (auth.jwt() ->> 'email')) IN ('super_admin', 'club_admin'));
 
 CREATE POLICY "members_update" ON members 
   FOR UPDATE TO authenticated
-  USING ((SELECT role FROM members WHERE id = auth.uid()) IN ('super_admin', 'club_admin'));
+  USING ((SELECT role FROM members WHERE email ILIKE (auth.jwt() ->> 'email') OR regular_email ILIKE (auth.jwt() ->> 'email')) IN ('super_admin', 'club_admin'));
 
 CREATE POLICY "members_delete" ON members 
   FOR DELETE TO authenticated
-  USING ((SELECT role FROM members WHERE id = auth.uid()) IN ('super_admin', 'club_admin'));
+  USING ((SELECT role FROM members WHERE email ILIKE (auth.jwt() ->> 'email') OR regular_email ILIKE (auth.jwt() ->> 'email')) IN ('super_admin', 'club_admin'));
 
 
 -- ------------------------------------------
@@ -128,10 +128,10 @@ CREATE POLICY "sessions_read" ON sessions
 CREATE POLICY "sessions_write" ON sessions 
   FOR ALL TO authenticated
   USING (
-    (SELECT role FROM members WHERE id = auth.uid()) IN ('club_admin', 'super_admin')
+    (SELECT role FROM members WHERE email ILIKE (auth.jwt() ->> 'email') OR regular_email ILIKE (auth.jwt() ->> 'email')) IN ('club_admin', 'super_admin')
     OR (
-      (SELECT role FROM members WHERE id = auth.uid()) = 'domain_lead'
-      AND (SELECT domain_ids FROM members WHERE id = auth.uid()) && target_domain_ids
+      (SELECT role FROM members WHERE email ILIKE (auth.jwt() ->> 'email') OR regular_email ILIKE (auth.jwt() ->> 'email')) = 'domain_lead'
+      AND (SELECT domain_ids FROM members WHERE email ILIKE (auth.jwt() ->> 'email') OR regular_email ILIKE (auth.jwt() ->> 'email')) && target_domain_ids
     )
   );
 
@@ -142,12 +142,12 @@ CREATE POLICY "sessions_write" ON sessions
 -- Members can view their own attendance
 CREATE POLICY "attendance_self_read" ON attendance 
   FOR SELECT TO authenticated
-  USING (member_id = auth.uid());
+  USING (member_id IN (SELECT id FROM members WHERE email ILIKE (auth.jwt() ->> 'email') OR regular_email ILIKE (auth.jwt() ->> 'email')));
 
 -- Admins and Leads can view all attendance records
 CREATE POLICY "attendance_admin_read" ON attendance 
   FOR SELECT TO authenticated
-  USING ((SELECT role FROM members WHERE id = auth.uid()) IN ('domain_lead', 'club_admin', 'super_admin'));
+  USING ((SELECT role FROM members WHERE email ILIKE (auth.jwt() ->> 'email') OR regular_email ILIKE (auth.jwt() ->> 'email')) IN ('domain_lead', 'club_admin', 'super_admin'));
 
 -- Admins and Leads can mark attendance manually
 -- Members can mark their own attendance ONLY via NFC method
@@ -155,13 +155,13 @@ CREATE POLICY "attendance_write" ON attendance
   FOR INSERT TO authenticated
   WITH CHECK (
     -- Admin / Lead inserting for someone
-    ((SELECT role FROM members WHERE id = auth.uid()) IN ('domain_lead', 'club_admin', 'super_admin'))
+    ((SELECT role FROM members WHERE email ILIKE (auth.jwt() ->> 'email') OR regular_email ILIKE (auth.jwt() ->> 'email')) IN ('domain_lead', 'club_admin', 'super_admin'))
     OR 
     -- Self check-in condition: must be their own ID, must be via NFC
-    (member_id = auth.uid() AND method = 'nfc' AND marked_by = auth.uid())
+    (member_id IN (SELECT id FROM members WHERE email ILIKE (auth.jwt() ->> 'email') OR regular_email ILIKE (auth.jwt() ->> 'email')) AND method = 'nfc')
   );
 
 -- Only Admins and Leads can update attendance records (e.g., changing present to absent)
 CREATE POLICY "attendance_update" ON attendance 
   FOR UPDATE TO authenticated
-  USING ((SELECT role FROM members WHERE id = auth.uid()) IN ('domain_lead', 'club_admin', 'super_admin'));
+  USING ((SELECT role FROM members WHERE email ILIKE (auth.jwt() ->> 'email') OR regular_email ILIKE (auth.jwt() ->> 'email')) IN ('domain_lead', 'club_admin', 'super_admin'));

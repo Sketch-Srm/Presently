@@ -1,15 +1,19 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
+import React, { use, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getAllMembers, getMemberAttendance, updateMember, updateMemberPhoto } from '@/lib/actions';
+import { getMemberAttendance, updateMember, updateMemberPhoto, getAllDomains } from '@/lib/actions';
 import { createClient } from '@/lib/supabase/client';
-import { ArrowLeft, Pencil, Save, X, Upload } from 'lucide-react';
+import { ArrowLeft, Pencil, Save, X, Upload, CreditCard } from 'lucide-react';
+import Link from 'next/link';
 
-export default function MemberDetailPage({ params }: { params: { id: string } }) {
+export default function MemberDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  // Next.js 15: params is a Promise — unwrap with React.use()
+  const { id } = use(params);
   const router = useRouter();
+
   const [member, setMember] = useState<any>(null);
+  const [domains, setDomains] = useState<any[]>([]);
   const [attendance, setAttendance] = useState<any[]>([]);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -19,7 +23,8 @@ export default function MemberDetailPage({ params }: { params: { id: string } })
   useEffect(() => {
     (async () => {
       const { getMemberById } = await import('@/lib/actions');
-      const m = await getMemberById(params.id);
+      const [m, d] = await Promise.all([getMemberById(id), getAllDomains()]);
+      setDomains(d);
       if (m) {
         setMember(m);
         setForm({
@@ -31,17 +36,18 @@ export default function MemberDetailPage({ params }: { params: { id: string } })
           phone: m.phone,
           role: m.role,
           status: m.status,
+          domain_ids: m.domain_ids ?? [],
         });
         const hist = await getMemberAttendance(m.id);
         setAttendance(hist);
       }
     })();
-  }, [params.id]);
+  }, [id]);
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      await updateMember(params.id, form);
+      await updateMember(id, form);
       setMember((prev: any) => ({ ...prev, ...form }));
       setEditing(false);
     } catch {
@@ -58,17 +64,29 @@ export default function MemberDetailPage({ params }: { params: { id: string } })
     try {
       const supabase = createClient();
       const ext = file.name.split('.').pop();
-      const path = `${params.id}.${ext}`;
+      const path = `${id}.${ext}`;
       const { error } = await supabase.storage.from('member-photos').upload(path, file, { upsert: true });
       if (error) throw error;
       const { data: { publicUrl } } = supabase.storage.from('member-photos').getPublicUrl(path);
-      await updateMemberPhoto(params.id, publicUrl);
+      await updateMemberPhoto(id, publicUrl);
       setMember((prev: any) => ({ ...prev, photo_url: publicUrl }));
     } catch {
       alert('Failed to upload photo');
     } finally {
       setUploading(false);
     }
+  };
+
+  const toggleDomain = (domainId: string) => {
+    setForm((prev: any) => {
+      const current: string[] = prev.domain_ids ?? [];
+      return {
+        ...prev,
+        domain_ids: current.includes(domainId)
+          ? current.filter((d: string) => d !== domainId)
+          : [...current, domainId],
+      };
+    });
   };
 
   const presentCount = attendance.filter(a => a.status === 'present' || a.status === 'late').length;
@@ -91,9 +109,22 @@ export default function MemberDetailPage({ params }: { params: { id: string } })
         </button>
         <h1 className="text-display" style={{ fontSize: '1.25rem', flex: 1 }}>Member Detail</h1>
         {!editing ? (
-          <button onClick={() => setEditing(true)} className="btn btn-ghost" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', border: '1px solid var(--chrome-dark)', padding: '0 0.75rem', minHeight: '36px' }}>
-            <Pencil size={14} /> Edit
-          </button>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <Link
+              href={`/admin/members/register-card?memberId=${id}&memberName=${encodeURIComponent(member.name)}`}
+              className="btn btn-ghost"
+              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', border: '1px solid var(--chrome-dark)', padding: '0 0.75rem', minHeight: '36px' }}
+            >
+              <CreditCard size={14} />
+            </Link>
+            <button
+              onClick={() => setEditing(true)}
+              className="btn btn-ghost"
+              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', border: '1px solid var(--chrome-dark)', padding: '0 0.75rem', minHeight: '36px' }}
+            >
+              <Pencil size={14} /> Edit
+            </button>
+          </div>
         ) : (
           <div style={{ display: 'flex', gap: '0.5rem' }}>
             <button onClick={() => setEditing(false)} className="btn btn-ghost" style={{ padding: '0 0.75rem', minHeight: '36px' }}>
@@ -137,8 +168,9 @@ export default function MemberDetailPage({ params }: { params: { id: string } })
           <div className="text-display" style={{ fontSize: '1.25rem' }}>{member.name}</div>
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--chrome-mid)' }}>{member.student_id}</div>
           <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
-            <span className={`badge ${member.role === 'super_admin' ? 'badge-present' : ''}`} style={{ fontSize: '0.6rem' }}>{member.role.replace('_', ' ').toUpperCase()}</span>
+            <span className={`badge ${member.role === 'super_admin' ? 'badge-present' : ''}`} style={{ fontSize: '0.6rem' }}>{member.role.replace(/_/g, ' ').toUpperCase()}</span>
             <span className={`badge ${member.status === 'active' ? 'badge-present' : 'badge-absent'}`} style={{ fontSize: '0.6rem' }}>{member.status.toUpperCase()}</span>
+            {member.card_serial && <span style={{ fontSize: '0.6rem', color: 'var(--chrome-mid)' }}>NFC ✓</span>}
           </div>
         </div>
         {attendanceRate !== null && (
@@ -200,7 +232,41 @@ export default function MemberDetailPage({ params }: { params: { id: string } })
                   <option value="alumni">Alumni</option>
                 </select>
               </div>
+              {/* Domain assignment */}
+              {domains.length > 0 && (
+                <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr', alignItems: 'flex-start', gap: '1rem' }}>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--chrome-mid)', paddingTop: '0.25rem' }}>Domains</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    {domains.map((d: any) => (
+                      <label key={d.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          checked={(form.domain_ids ?? []).includes(d.id)}
+                          onChange={() => toggleDomain(d.id)}
+                          style={{ width: '16px', height: '16px', accentColor: 'var(--accent-signal)' }}
+                        />
+                        {d.name}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
             </>
+          )}
+
+          {/* Domain chips (view mode) */}
+          {!editing && domains.length > 0 && (member.domain_ids?.length ?? 0) > 0 && (
+            <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr', alignItems: 'center', gap: '1rem' }}>
+              <span style={{ fontSize: '0.75rem', color: 'var(--chrome-mid)' }}>Domains</span>
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                {member.domain_ids.map((did: string) => {
+                  const d = domains.find((x: any) => x.id === did);
+                  return d ? (
+                    <span key={did} className="badge" style={{ fontSize: '0.65rem' }}>{d.name}</span>
+                  ) : null;
+                })}
+              </div>
+            </div>
           )}
         </div>
       </div>

@@ -205,7 +205,8 @@ export async function createMember(formData: FormData) {
       name, 
       student_id, 
       register_no, 
-      email, 
+      // Null when blank — avoids UNIQUE constraint collision on empty SRMIST email
+      email: email || null, 
       regular_email: regular_email || null, 
       role,
       domain_ids: domain_ids.length > 0 ? domain_ids : []

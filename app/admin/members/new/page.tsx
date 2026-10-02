@@ -1,12 +1,21 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { createMember } from '@/lib/actions';
+import { createMember, getAllDomains } from '@/lib/actions';
 
 export default function NewMemberPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [domains, setDomains] = useState<any[]>([]);
+  const [domainsLoading, setDomainsLoading] = useState(true);
+
+  useEffect(() => {
+    getAllDomains().then((d) => {
+      setDomains(d);
+      setDomainsLoading(false);
+    });
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -15,9 +24,9 @@ export default function NewMemberPage() {
       const formData = new FormData(e.currentTarget);
       await createMember(formData);
       router.push('/admin/members');
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert('Failed to add member');
+      alert(err?.message ?? 'Failed to add member');
       setLoading(false);
     }
   };
@@ -55,21 +64,36 @@ export default function NewMemberPage() {
             <input type="email" name="regular_email" className="input" placeholder="jane@gmail.com" required />
           </div>
           <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'var(--chrome-mid)' }}>Email (SRMIST - Optional)</label>
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'var(--chrome-mid)' }}>
+              SRMIST Email <span style={{ color: 'var(--chrome-mid)', fontWeight: 400 }}>(Optional)</span>
+            </label>
             <input type="email" name="email" className="input" placeholder="jd1234@srmist.edu.in" />
           </div>
         </div>
 
+        {/* Domains — fetched from DB */}
         <div className="card" style={{ padding: '1rem' }}>
           <label style={{ display: 'block', marginBottom: '0.75rem', fontSize: '0.875rem', color: 'var(--chrome-mid)' }}>Assign Domains</label>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            {['Design', 'Technical', 'Events', 'Marketing'].map((d) => (
-              <label key={d} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.875rem' }}>
-                <input type="checkbox" style={{ width: '18px', height: '18px', accentColor: 'var(--accent-signal)' }} />
-                {d}
-              </label>
-            ))}
-          </div>
+          {domainsLoading ? (
+            <p style={{ fontSize: '0.8rem', color: 'var(--chrome-mid)' }}>Loading domains...</p>
+          ) : domains.length === 0 ? (
+            <p style={{ fontSize: '0.8rem', color: 'var(--chrome-mid)' }}>No domains found. Create domains first.</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {domains.map((d: any) => (
+                <label key={d.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.875rem', cursor: 'pointer' }}>
+                  {/* name="domain_ids" is required so formData.getAll('domain_ids') works */}
+                  <input
+                    type="checkbox"
+                    name="domain_ids"
+                    value={d.id}
+                    style={{ width: '18px', height: '18px', accentColor: 'var(--accent-signal)' }}
+                  />
+                  {d.name}
+                </label>
+              ))}
+            </div>
+          )}
         </div>
 
         <div>

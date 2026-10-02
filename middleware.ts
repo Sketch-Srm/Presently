@@ -1,6 +1,8 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+const ADMIN_ROLES = ['domain_lead', 'club_admin', 'super_admin']
+
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
@@ -31,23 +33,42 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // Route protection logic
-  const isAuthRoute = request.nextUrl.pathname.startsWith('/login')
-  const isAdminRoute = request.nextUrl.pathname.startsWith('/admin')
-  const isMemberRoute = request.nextUrl.pathname.startsWith('/dashboard') || request.nextUrl.pathname.startsWith('/sessions') || request.nextUrl.pathname.startsWith('/profile')
+  const pathname = request.nextUrl.pathname
+  const isAuthRoute = pathname.startsWith('/login')
+  const isAdminRoute = pathname.startsWith('/admin')
+  const isMemberRoute =
+    pathname.startsWith('/dashboard') ||
+    pathname.startsWith('/sessions') ||
+    pathname.startsWith('/profile')
 
-  // Redirect unauthenticated users trying to access protected routes
+  // 1. Unauthenticated → redirect to login for any protected route
   if (!user && (isAdminRoute || isMemberRoute)) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
   }
 
-  // Redirect authenticated users trying to access login page
+  // 2. Authenticated user trying to hit /login → send them home
   if (user && isAuthRoute) {
     const url = request.nextUrl.clone()
     url.pathname = '/'
     return NextResponse.redirect(url)
+  }
+
+  // 3. Role check for /admin routes — regular members must not get in
+  if (user && isAdminRoute) {
+    const { data: member } = await supabase
+      .from('members')
+      .select('role')
+      .or(`email.ilike.${user.email},regular_email.ilike.${user.email}`)
+      .single()
+
+    if (!member || !ADMIN_ROLES.includes(member.role)) {
+      // Logged in but not an admin/lead — kick to member dashboard
+      const url = request.nextUrl.clone()
+      url.pathname = '/dashboard'
+      return NextResponse.redirect(url)
+    }
   }
 
   return supabaseResponse

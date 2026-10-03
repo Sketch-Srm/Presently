@@ -30,7 +30,13 @@ export const createClient = async () => {
 }
 
 export const createAdminClient = () => {
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!serviceKey) {
+    throw new Error(
+      'SUPABASE_SERVICE_ROLE_KEY is not set. ' +
+      'Set it in .env.local (locally) or in your deployment environment variables.'
+    )
+  }
   return createSupabaseClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     serviceKey,

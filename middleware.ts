@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { emailFilter } from '@/lib/utils/email-filter'
 
 const ADMIN_ROLES = ['domain_lead', 'club_admin', 'super_admin']
 
@@ -17,10 +18,7 @@ export async function middleware(request: NextRequest) {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
-          supabaseResponse = NextResponse.next({
-            request,
-          })
+          supabaseResponse = NextResponse.next({ request })
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
           )
@@ -60,7 +58,7 @@ export async function middleware(request: NextRequest) {
     const { data: member } = await supabase
       .from('members')
       .select('role')
-      .or(`email.ilike.${user.email},regular_email.ilike.${user.email}`)
+      .or(emailFilter(user.email))
       .single()
 
     if (!member || !ADMIN_ROLES.includes(member.role)) {

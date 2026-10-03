@@ -16,7 +16,7 @@ export default function SessionsListPage() {
 
   const handleClose = async (e: React.MouseEvent, sessionId: string) => {
     e.preventDefault(); // prevent Link navigation
-    if (!confirm('Close this session? No more attendance can be recorded.')) return;
+    if (!confirm('Close this session? All unmarked eligible members will be marked absent.')) return;
     setClosing(sessionId);
     try {
       await closeSession(sessionId);

@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, CalendarDays, Plus, Users, BarChart3 } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, Wifi, Users, BarChart3 } from 'lucide-react';
 
 export function AdminBottomNav() {
   const pathname = usePathname();
@@ -23,7 +23,7 @@ export function AdminBottomNav() {
     }}>
       <NavItem href="/admin/dashboard" label="Dash" icon={<LayoutDashboard size={20} />} active={pathname === '/admin/dashboard'} />
       <NavItem href="/admin/sessions" label="Sessions" icon={<CalendarDays size={20} />} active={pathname.startsWith('/admin/sessions')} />
-      <NavItem href="/admin/sessions/new" label="Take" icon={<Plus size={24} />} hero active={false} />
+      <NavItem href="/admin/scan" label="Scan" icon={<Wifi size={24} />} hero active={false} />
       <NavItem href="/admin/members" label="Members" icon={<Users size={20} />} active={pathname.startsWith('/admin/members')} />
       <NavItem href="/admin/reports" label="Reports" icon={<BarChart3 size={20} />} active={pathname === '/admin/reports'} />
     </nav>

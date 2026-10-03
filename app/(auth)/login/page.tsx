@@ -74,24 +74,10 @@ function LoginContent() {
         </button>
 
         <div style={{ textAlign: 'center', fontSize: '0.75rem', color: 'var(--chrome-mid)' }}>
-          Any email allowed for testing.
+          Use your registered Google account.
         </div>
       </div>
       
-      {errorParam === 'invalid_domain' && (
-        <div style={{ 
-          marginTop: '1.5rem', 
-          padding: '0.75rem', 
-          borderRadius: 'var(--radius-sm)', 
-          background: 'rgba(232, 93, 93, 0.1)', 
-          border: '1px solid rgba(232, 93, 93, 0.3)',
-          color: 'var(--state-absent)', 
-          fontSize: '0.875rem', 
-          textAlign: 'center' 
-        }}>
-          Authentication failed. You must use a valid student email (e.g. md5822@srmist.edu.in).
-        </div>
-      )}
       
       {errorParam === 'auth_failed' && (
         <div style={{ 

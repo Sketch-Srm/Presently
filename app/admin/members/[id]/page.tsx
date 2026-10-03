@@ -2,7 +2,7 @@
 
 import React, { use, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getMemberAttendance, updateMember, updateMemberPhoto, getAllDomains } from '@/lib/actions';
+import { getMemberAttendance, updateMember, updateMemberPhoto, getAllDomains, getMemberById } from '@/lib/actions';
 import { createClient } from '@/lib/supabase/client';
 import { ArrowLeft, Pencil, Save, X, Upload, CreditCard } from 'lucide-react';
 import Link from 'next/link';
@@ -22,7 +22,6 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
 
   useEffect(() => {
     (async () => {
-      const { getMemberById } = await import('@/lib/actions');
       const [m, d] = await Promise.all([getMemberById(id), getAllDomains()]);
       setDomains(d);
       if (m) {

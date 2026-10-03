@@ -1,128 +1,89 @@
-'use client';
+import React from 'react';
+import { redirect } from 'next/navigation';
+import { getMemberSessionDetail } from '@/lib/actions';
+import { NfcCheckIn } from './NfcCheckIn';
+import { ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
 
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { LogoMark } from '@/components/logo/LogoMark';
-import { RibbonSpin } from '@/components/logo/RibbonSpin';
-import { RibbonFold } from '@/components/logo/RibbonFold';
+const STATUS_STYLES: Record<string, { color: string; label: string }> = {
+  present:  { color: 'var(--state-present)', label: "You're Checked In" },
+  late:     { color: 'var(--state-late)',    label: 'Marked Late' },
+  absent:   { color: 'var(--state-absent)',  label: 'Marked Absent' },
+  excused:  { color: 'var(--accent-signal)', label: 'Excused' },
+};
 
-export default function MemberSessionDetail() {
-  const router = useRouter();
-  const [scanning, setScanning] = useState(false);
-  const [status, setStatus] = useState<'pending' | 'success'>('pending');
-  const [nfcSupported, setNfcSupported] = useState(false);
+export default async function MemberSessionDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id: sessionId } = await params;
+  const data = await getMemberSessionDetail(sessionId);
 
-  useEffect(() => {
-    if ('NDEFReader' in window) {
-      setNfcSupported(true);
-    }
-  }, []);
+  if (!data) redirect('/sessions');
 
-  const handleSelfCheckIn = async () => {
-    if (!('NDEFReader' in window)) return;
-    try {
-      setScanning(true);
-      // @ts-ignore
-      const ndef = new window.NDEFReader();
-      await ndef.scan();
-      
-      ndef.addEventListener("reading", ({ serialNumber }: any) => {
-        // In reality, verify it matches their own card_serial in DB
-        setScanning(false);
-        setStatus('success');
-      });
-    } catch (error) {
-      console.error(error);
-      setScanning(false);
-    }
-  };
+  const { session, attendanceRecord, memberId } = data;
+
+  const sessionTime = new Date(session.start_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+  const sessionDate = new Date(session.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+  const isOpen = session.status === 'open';
+  const markStyle = attendanceRecord ? STATUS_STYLES[attendanceRecord.status] : null;
 
   return (
     <div style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', minHeight: '100vh', paddingBottom: '100px' }}>
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
-        <button onClick={() => router.back()} className="btn btn-ghost" style={{ padding: '0', minWidth: '40px', minHeight: '40px' }}>←</button>
-        <span className="badge badge-present">LIVE NOW</span>
+        <Link href="/sessions" className="btn btn-ghost" style={{ padding: '0', minWidth: '40px', minHeight: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <ArrowLeft size={20} />
+        </Link>
+        <span className={`badge ${isOpen ? 'badge-present' : ''}`} style={{ borderColor: isOpen ? undefined : 'var(--chrome-dark)', color: isOpen ? undefined : 'var(--chrome-mid)' }}>
+          {isOpen ? 'LIVE NOW' : 'CLOSED'}
+        </span>
       </header>
 
-      <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
-        <h1 className="text-display" style={{ fontSize: '2rem', marginBottom: '0.5rem', color: 'var(--chrome-light)' }}>UI Review Sync</h1>
-        <p style={{ color: 'var(--chrome-mid)', fontSize: '1rem', marginBottom: '1rem' }}>Today • 4:00 PM - 5:00 PM</p>
-        <span className="badge" style={{ borderColor: 'var(--chrome-mid)', color: 'var(--chrome-mid)' }}>DESIGN DOMAIN</span>
+      {/* Session Info */}
+      <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
+        <h1 className="text-display" style={{ fontSize: '1.75rem', marginBottom: '0.5rem', color: 'var(--chrome-light)' }}>{session.title}</h1>
+        <p style={{ color: 'var(--chrome-mid)', fontSize: '0.95rem', marginBottom: '0.75rem' }}>
+          {sessionDate} · {sessionTime}
+        </p>
+        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+          <span className="badge" style={{ borderColor: 'var(--chrome-mid)', color: 'var(--chrome-mid)', fontSize: '0.65rem' }}>
+            {session.type?.toUpperCase()}
+          </span>
+          <span className="badge" style={{ borderColor: 'var(--chrome-mid)', color: 'var(--chrome-mid)', fontSize: '0.65rem' }}>
+            {session.scope === 'club_wide' ? 'CLUB-WIDE' : 'DOMAIN'}
+          </span>
+        </div>
       </div>
 
+      {/* Status / Check-in area */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-        {status === 'success' ? (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', animation: 'slideUp 0.5s var(--ease-spring)' }}>
-            <div style={{ width: '80px', height: '80px', marginBottom: '1.5rem' }}>
-              <RibbonFold />
+        {markStyle ? (
+          /* Already have an attendance record */
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', animation: 'slideUp 0.5s ease' }}>
+            <div style={{ width: '72px', height: '72px', borderRadius: '50%', background: `${markStyle.color}22`, border: `2px solid ${markStyle.color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', marginBottom: '1.5rem' }}>
+              {attendanceRecord!.status === 'present' || attendanceRecord!.status === 'late' ? '✓' : '×'}
             </div>
-            <h2 className="text-display" style={{ color: 'var(--state-present)', fontSize: '1.5rem', marginBottom: '0.5rem' }}>You're Checked In</h2>
-            <p style={{ color: 'var(--chrome-mid)' }}>4:12 PM via NFC Tap</p>
-          </div>
-        ) : (
-          <>
-            {nfcSupported ? (
-              <div style={{ position: 'relative', width: '180px', height: '180px', marginBottom: '2rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                {scanning && (
-                  <div style={{
-                    position: 'absolute', inset: -20, borderRadius: '50%',
-                    background: 'radial-gradient(circle, rgba(125,216,255,0.2) 0%, transparent 70%)',
-                    animation: 'pulse 2s infinite var(--ease-smooth)'
-                  }} />
-                )}
-                <button 
-                  onClick={handleSelfCheckIn}
-                  style={{
-                    width: '140px', height: '140px', borderRadius: '50%',
-                    background: scanning ? 'var(--bg-surface)' : 'var(--gradient-chrome)',
-                    border: `1px solid ${scanning ? 'var(--accent-signal)' : 'var(--chrome-dark)'}`,
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                    boxShadow: scanning ? '0 0 30px rgba(125, 216, 255, 0.3)' : '0 10px 30px rgba(0,0,0,0.5)',
-                    transition: 'all 0.3s',
-                    zIndex: 2
-                  }}
-                >
-                  {scanning ? (
-                    <RibbonSpin />
-                  ) : (
-                    <div style={{ width: '48px', height: '48px' }}>
-                      <LogoMark />
-                    </div>
-                  )}
-                  {!scanning && <span style={{ marginTop: '0.75rem', fontSize: '1rem', fontWeight: 600 }}>TAP IN</span>}
-                </button>
-              </div>
-            ) : (
-              <div className="card" style={{ textAlign: 'center', padding: '2rem' }}>
-                <div style={{ width: '48px', height: '48px', opacity: 0.5, margin: '0 auto 1rem' }}>
-                  <LogoMark />
-                </div>
-                <h3 style={{ marginBottom: '0.5rem', color: 'var(--chrome-light)' }}>NFC Not Supported</h3>
-                <p style={{ color: 'var(--chrome-mid)', fontSize: '0.875rem', marginBottom: '1.5rem' }}>
-                  Please ask your Domain Lead to mark you present manually.
-                </p>
-              </div>
-            )}
-            
-            {nfcSupported && (
-              <p style={{ color: 'var(--chrome-mid)', textAlign: 'center', fontSize: '0.875rem' }}>
-                {scanning ? 'Hold your phone against your member card...' : 'Tap to enable NFC scanning'}
+            <h2 className="text-display" style={{ color: markStyle.color, fontSize: '1.5rem', marginBottom: '0.5rem' }}>{markStyle.label}</h2>
+            {attendanceRecord!.timestamp && (
+              <p style={{ color: 'var(--chrome-mid)', fontSize: '0.875rem' }}>
+                {new Date(attendanceRecord!.timestamp).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })} via {attendanceRecord!.method}
               </p>
             )}
-          </>
+          </div>
+        ) : isOpen ? (
+          /* Session is open, not yet marked — show NFC check-in */
+          <NfcCheckIn sessionId={sessionId} memberId={memberId} />
+        ) : (
+          /* Session closed, no record */
+          <div className="card" style={{ textAlign: 'center', padding: '2rem', maxWidth: '280px' }}>
+            <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>📋</div>
+            <h3 style={{ marginBottom: '0.5rem', color: 'var(--chrome-light)' }}>Session Closed</h3>
+            <p style={{ color: 'var(--chrome-mid)', fontSize: '0.875rem' }}>
+              This session has ended. No attendance record was found for you.
+            </p>
+          </div>
         )}
       </div>
 
-      <style dangerouslySetInnerHTML={{__html: `
-        @keyframes pulse {
-          0% { transform: scale(0.95); opacity: 0.5; }
-          50% { transform: scale(1.1); opacity: 0.8; }
-          100% { transform: scale(0.95); opacity: 0.5; }
-        }
-        @keyframes slideUp {
-          from { transform: translateY(20px); opacity: 0; }
-          to { transform: translateY(0); opacity: 1; }
-        }
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
       `}} />
     </div>
   );

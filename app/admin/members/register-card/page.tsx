@@ -172,7 +172,7 @@ export default function RegisterCardPage() {
       alert('Card linked successfully!');
       router.push('/admin/members');
     } else {
-      alert(result.error || 'Failed to link card');
+      alert((result as any).reason === 'already_linked' ? `Card already linked to ${(result as any).owner}` : 'Failed to link card');
     }
   };
 

@@ -3,13 +3,13 @@
 import React from 'react';
 import Link from 'next/link';
 import { signOutAction } from '@/lib/actions';
-import { LogoAssembly } from '@/components/logo/LogoAssembly';
+import { LogoMark } from '@/components/logo/LogoMark';
 
 export default function UnregisteredPage() {
   return (
     <div style={{ padding: '1.25rem', height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
       <div style={{ width: '80px', height: '80px', marginBottom: '2rem' }}>
-        <LogoAssembly onComplete={() => {}} />
+        <LogoMark />
       </div>
       
       <h1 className="text-display" style={{ fontSize: '1.5rem', marginBottom: '1rem', color: 'var(--state-absent)' }}>

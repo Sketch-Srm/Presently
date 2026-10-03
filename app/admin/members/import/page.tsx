@@ -25,6 +25,12 @@ export default function ImportMembersPage() {
       if (lines.length < 2) { setErrors(['CSV must have a header row and at least one data row.']); return; }
 
       const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/['"]/g, ''));
+      const missingHeaders = EXPECTED_COLUMNS.filter(c => !headers.includes(c));
+      if (missingHeaders.length > 0) {
+        setErrors([`Missing required columns: ${missingHeaders.join(', ')}`]);
+        return;
+      }
+      
       const rows = lines.slice(1).map((line, i) => {
         const vals = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''));
         const row: any = {};
@@ -135,7 +141,7 @@ export default function ImportMembersPage() {
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem' }}>
                   <thead>
                     <tr>
-                      {['name', 'student_id', 'register_no', 'email', 'role'].map(h => (
+                      {['name', 'student_id', 'register_no', 'regular_email', 'role'].map(h => (
                         <th key={h} style={{ textAlign: 'left', padding: '0.5rem', color: 'var(--chrome-mid)', borderBottom: '1px solid var(--chrome-dark)', whiteSpace: 'nowrap' }}>
                           {h}
                         </th>

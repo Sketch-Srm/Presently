@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { emailFilter } from '@/lib/utils/email-filter'
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
@@ -36,7 +37,7 @@ export async function GET(request: Request) {
       const { data: member } = await supabase
         .from('members')
         .select('role')
-        .or(`email.ilike.${session.user.email},regular_email.ilike.${session.user.email}`)
+        .or(emailFilter(session.user.email))
         .single()
 
       if (!member) {
@@ -45,7 +46,7 @@ export async function GET(request: Request) {
       }
 
       // Route based on role
-      if (member.role === 'super_admin' || member.role === 'club_admin') {
+      if (['super_admin', 'club_admin', 'domain_lead'].includes(member.role)) {
         return NextResponse.redirect(`${origin}/admin/dashboard`)
       } else {
         return NextResponse.redirect(`${origin}/dashboard`)

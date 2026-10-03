@@ -12,6 +12,12 @@ export default async function MemberDashboard() {
   const totalCount = attendanceHistory.length;
   const attendanceRate = totalCount > 0 ? Math.round((presentCount / totalCount) * 100) : null;
 
+  const eligibleSessions = sessions.filter((s: any) => {
+    if (s.scope === 'club_wide') return true;
+    if (!s.target_domain_ids?.length) return false;
+    return (profile?.domain_ids ?? []).some((d: string) => s.target_domain_ids.includes(d));
+  });
+
   return (
     <div style={{ padding: '1.25rem' }}>
       <header style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -98,10 +104,10 @@ export default async function MemberDashboard() {
           <Link href="/sessions" style={{ fontSize: '0.8rem', color: 'var(--accent-signal)', textDecoration: 'none' }}>View All</Link>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          {sessions.length === 0 ? (
+          {eligibleSessions.length === 0 ? (
             <p style={{ color: 'var(--chrome-mid)', fontSize: '0.875rem' }}>No upcoming sessions.</p>
           ) : (
-            sessions.map((session: any) => (
+            eligibleSessions.map((session: any) => (
               <div key={session.id} className="card" style={{ padding: '1rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>

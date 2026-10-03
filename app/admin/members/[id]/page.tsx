@@ -2,9 +2,9 @@
 
 import React, { use, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getMemberAttendance, updateMember, updateMemberPhoto, getAllDomains, getMemberById } from '@/lib/actions';
+import { getMemberAttendance, updateMember, updateMemberPhoto, getAllDomains, getMemberById, deleteMember } from '@/lib/actions';
 import { createClient } from '@/lib/supabase/client';
-import { ArrowLeft, Pencil, Save, X, Upload, CreditCard } from 'lucide-react';
+import { ArrowLeft, Pencil, Save, X, Upload, CreditCard, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 
 export default function MemberDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -18,6 +18,7 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [form, setForm] = useState<any>({});
 
   useEffect(() => {
@@ -53,6 +54,18 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
       alert('Failed to save changes');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm('Are you sure you want to delete this member?')) return;
+    setDeleting(true);
+    try {
+      await deleteMember(id);
+      router.push('/admin/members');
+    } catch {
+      alert('Failed to delete member');
+      setDeleting(false);
     }
   };
 
@@ -93,7 +106,7 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
 
   if (!member) {
     return (
-      <div style={{ padding: '1.25rem', textAlign: 'center', paddingTop: '4rem' }}>
+      <div style={{ padding: '4rem 1.25rem 1.25rem 1.25rem', textAlign: 'center' }}>
         <p style={{ color: 'var(--chrome-mid)' }}>Loading...</p>
       </div>
     );
@@ -126,6 +139,9 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
           </div>
         ) : (
           <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button onClick={handleDelete} disabled={deleting} className="btn btn-ghost" style={{ padding: '0 0.75rem', minHeight: '36px', color: 'var(--state-absent)', borderColor: 'var(--state-absent)' }}>
+              <Trash2 size={16} />
+            </button>
             <button onClick={() => setEditing(false)} className="btn btn-ghost" style={{ padding: '0 0.75rem', minHeight: '36px' }}>
               <X size={16} />
             </button>

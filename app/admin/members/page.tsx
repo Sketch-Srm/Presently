@@ -11,6 +11,9 @@ export default function MembersListPage() {
   const [search, setSearch] = useState('');
   const [activeDomain, setActiveDomain] = useState<string>('all');
   const [loading, setLoading] = useState(true);
+  
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   useEffect(() => {
     (async () => {
@@ -34,6 +37,15 @@ export default function MembersListPage() {
 
     return matchesSearch && matchesDomain;
   });
+
+  // Reset pagination when search or domain changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, activeDomain]);
+
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedMembers = filteredMembers.slice(startIndex, startIndex + itemsPerPage);
+  const totalPages = Math.ceil(filteredMembers.length / itemsPerPage);
 
   return (
     <div style={{ padding: '1.25rem' }}>
@@ -68,27 +80,19 @@ export default function MembersListPage() {
         />
       </div>
 
-      {/* Domain Filter Tabs */}
-      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', overflowX: 'auto', paddingBottom: '0.25rem' }}>
-        {[{ id: 'all', name: 'All' }, ...domains].map((d: any) => (
-          <button
-            key={d.id}
-            onClick={() => setActiveDomain(d.id)}
-            className="btn btn-ghost"
-            style={{
-              padding: '0.375rem 0.75rem',
-              fontSize: '0.75rem',
-              whiteSpace: 'nowrap',
-              border: '1px solid',
-              borderColor: activeDomain === d.id ? 'var(--accent-signal)' : 'var(--chrome-dark)',
-              color: activeDomain === d.id ? 'var(--accent-signal)' : 'var(--chrome-mid)',
-              transition: 'all 0.2s',
-              borderRadius: 'var(--radius-sm)',
-            }}
-          >
-            {d.name}
-          </button>
-        ))}
+      {/* Domain Filter Dropdown */}
+      <div style={{ marginBottom: '1.5rem' }}>
+        <select
+          className="input"
+          value={activeDomain}
+          onChange={(e) => setActiveDomain(e.target.value)}
+          style={{ padding: '0.75rem', width: '100%', fontSize: '0.875rem' }}
+        >
+          <option value="all">All Domains</option>
+          {domains.map((d: any) => (
+            <option key={d.id} value={d.id}>{d.name}</option>
+          ))}
+        </select>
       </div>
 
       {/* Member List */}
@@ -96,7 +100,7 @@ export default function MembersListPage() {
         <p style={{ color: 'var(--chrome-mid)', textAlign: 'center', marginTop: '2rem', fontSize: '0.875rem' }}>Loading...</p>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          {filteredMembers.map((member: any) => (
+          {paginatedMembers.map((member: any) => (
             <Link href={`/admin/members/${member.id}`} key={member.id} style={{ textDecoration: 'none' }}>
               <div className="card" style={{ padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -132,6 +136,30 @@ export default function MembersListPage() {
             <p style={{ color: 'var(--chrome-mid)', fontSize: '0.875rem', textAlign: 'center', marginTop: '2rem' }}>
               {search || activeDomain !== 'all' ? 'No members match your filter.' : 'No members found.'}
             </p>
+          )}
+
+          {totalPages > 1 && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.5rem', padding: '0.5rem 0' }}>
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="btn btn-ghost"
+                style={{ padding: '0.25rem 0.75rem', fontSize: '0.875rem', border: '1px solid var(--chrome-dark)' }}
+              >
+                Prev
+              </button>
+              <span style={{ fontSize: '0.875rem', color: 'var(--chrome-mid)' }}>
+                Page {currentPage} of {totalPages}
+              </span>
+              <button
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="btn btn-ghost"
+                style={{ padding: '0.25rem 0.75rem', fontSize: '0.875rem', border: '1px solid var(--chrome-dark)' }}
+              >
+                Next
+              </button>
+            </div>
           )}
         </div>
       )}

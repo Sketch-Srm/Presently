@@ -6,6 +6,38 @@ import { redirect } from 'next/navigation'
 import { emailFilter } from '@/lib/utils/email-filter'
 
 // ─────────────────────────────────────────────
+// AUDIT LOGS
+// ─────────────────────────────────────────────
+
+export async function logAudit(action: string, details: Record<string, any>) {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    const email = user?.email || 'system'
+    
+    const adminClient = createAdminClient()
+    await adminClient.from('audit_logs').insert({
+      actor_email: email,
+      action,
+      details
+    })
+  } catch (err) {
+    console.error('Failed to log audit:', err)
+  }
+}
+
+export async function getAuditLogs() {
+  const adminClient = createAdminClient()
+  const { data, error } = await adminClient
+    .from('audit_logs')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(100)
+  if (error) return []
+  return data
+}
+
+// ─────────────────────────────────────────────
 // AUTH
 // ─────────────────────────────────────────────
 
@@ -132,6 +164,19 @@ export async function getSessionWithRoster(sessionId: string) {
   if (sessionErr || !session) return null
 
   // 2. Fetch eligible members scoped by session
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  let userMember = null
+  if (user) {
+    const { data } = await adminClient
+      .from('members')
+      .select('role, domain_ids')
+      .or(emailFilter(user.email))
+      .single()
+    userMember = data
+  }
+
   let membersQuery = adminClient
     .from('members')
     .select('id, name, student_id, register_no, photo_url, domain_ids, card_serial')
@@ -140,6 +185,14 @@ export async function getSessionWithRoster(sessionId: string) {
 
   if (session.scope === 'domain_specific' && session.target_domain_ids?.length > 0) {
     membersQuery = membersQuery.overlaps('domain_ids', session.target_domain_ids)
+  }
+
+  if (userMember && !['super_admin', 'club_admin'].includes(userMember.role)) {
+    if (userMember.domain_ids && userMember.domain_ids.length > 0) {
+      membersQuery = membersQuery.overlaps('domain_ids', userMember.domain_ids)
+    } else {
+      membersQuery = membersQuery.eq('id', 'invalid-id-to-force-empty')
+    }
   }
 
   const { data: members = [] } = await membersQuery
@@ -352,13 +405,56 @@ export async function handleNfcScan(sessionId: string, cardSerial: string): Prom
 // ─────────────────────────────────────────────
 
 export async function getAllMembers() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
   const adminClient = createAdminClient()
-  const { data, error } = await adminClient
+
+  let userMember = null
+  if (user) {
+    const { data } = await adminClient
+      .from('members')
+      .select('role, domain_ids')
+      .or(emailFilter(user.email))
+      .single()
+    userMember = data
+  }
+
+  let query = adminClient
     .from('members')
     .select('id, name, student_id, register_no, role, status, domain_ids, photo_url, card_serial, email, regular_email')
     .order('name', { ascending: true })
+
+  // Restrict to respective domain for domain leads and members
+  if (userMember && !['super_admin', 'club_admin'].includes(userMember.role)) {
+    if (userMember.domain_ids && userMember.domain_ids.length > 0) {
+      query = query.overlaps('domain_ids', userMember.domain_ids)
+    } else {
+      // If they have no domains, they shouldn't see anyone else
+      query = query.eq('id', 'invalid-id-to-force-empty')
+    }
+  }
+
+  const { data, error } = await query
   if (error) return []
   return data
+}
+
+export async function deleteMember(id: string) {
+  const adminClient = createAdminClient()
+  
+  // Fetch member first to get details for audit
+  const { data: member } = await adminClient.from('members').select('name, email').eq('id', id).single()
+  
+  const { error } = await adminClient.from('members').delete().eq('id', id)
+  if (error) throw error
+  
+  await logAudit('MEMBER_DELETED', { 
+    memberId: id, 
+    memberName: member?.name,
+    memberEmail: member?.email 
+  })
+  
+  revalidatePath('/admin/members')
 }
 
 export async function createMember(formData: FormData) {
@@ -386,6 +482,13 @@ export async function createMember(formData: FormData) {
     .select()
 
   if (error) throw error
+  
+  await logAudit('MEMBER_CREATED', { 
+    memberId: data[0].id, 
+    memberName: name,
+    role
+  })
+  
   revalidatePath('/admin/members')
   return data[0]
 }
@@ -416,6 +519,12 @@ export async function updateMember(id: string, updates: Record<string, any>) {
   if (Object.keys(safe).length === 0) return
   const { error } = await adminClient.from('members').update(safe).eq('id', id)
   if (error) throw error
+  
+  await logAudit('MEMBER_UPDATED', { 
+    memberId: id,
+    updates: Object.keys(safe)
+  })
+  
   revalidatePath('/admin/members')
   revalidatePath(`/admin/members/${id}`)
 }
